@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../models/task.dart';
 import '../../services/task_service.dart';
-import '../../services/notification_service.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/task_card.dart';
 import '../../widgets/loading_view.dart';
-import '../../utils/constants.dart';
 
 class TaskListScreen extends StatefulWidget {
   const TaskListScreen({super.key});
@@ -16,7 +15,6 @@ class TaskListScreen extends StatefulWidget {
 class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TaskService _taskService = TaskService();
-  final NotificationService _notificationService = NotificationService();
 
   List<Task> _tasks = [];
   bool _isLoading = false;
@@ -28,9 +26,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
   String _sortBy = 'createdAt';
   String _order = 'desc';
 
-  int _unreadCount = 0;
-
-  final List<String> _scopes = ['mine', 'assigned', 'shared'];
+  final List<String> _scopes = ['created', 'assigned', 'shared'];
   final List<String> _tabLabels = ['Của tôi', 'Được giao', 'Được chia sẻ'];
 
   @override
@@ -43,7 +39,6 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
       }
     });
     _loadTasks();
-    _loadUnreadCount();
   }
 
   @override
@@ -75,13 +70,6 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  Future<void> _loadUnreadCount() async {
-    try {
-      final count = await _notificationService.getUnreadCount();
-      if (mounted) setState(() => _unreadCount = count);
-    } catch (_) {}
   }
 
   void _openFilter() {
@@ -213,39 +201,66 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Công việc'),
+        title: const Text('Danh sách công việc'),
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         actions: [
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.notifications_outlined),
-                onPressed: () async {
-                  await Navigator.pushNamed(context, '/notifications');
-                  _loadUnreadCount();
-                },
-              ),
-              if (_unreadCount > 0)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                    child: Text(
-                      _unreadCount > 99 ? '99+' : '$_unreadCount',
-                      style: const TextStyle(color: Colors.white, fontSize: 10),
-                      textAlign: TextAlign.center,
-                    ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Làm mới',
+            onPressed: _loadTasks,
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.account_circle),
+            tooltip: 'Tài khoản',
+            onSelected: (value) async {
+              if (value == 'logout') {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Đăng xuất'),
+                    content: const Text('Bạn có chắc chắn muốn đăng xuất không?'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Hủy')),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                        child: const Text('Đăng xuất'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  await AuthService().logout();
+                  if (context.mounted) {
+                    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                  }
+                }
+              }
+            },
+            itemBuilder: (ctx) => [
+              PopupMenuItem(
+                enabled: false,
+                child: FutureBuilder<String?>(
+                  future: AuthService().getCachedFullName(),
+                  builder: (context, snapshot) => Text(
+                    snapshot.data ?? 'Người dùng',
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
                   ),
                 ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, color: Colors.red, size: 20),
+                    SizedBox(width: 8),
+                    Text('Đăng xuất', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
             ],
-          ),
-          IconButton(
-            icon: const Icon(Icons.person_outlined),
-            onPressed: () => Navigator.pushNamed(context, '/profile'),
           ),
         ],
         bottom: TabBar(

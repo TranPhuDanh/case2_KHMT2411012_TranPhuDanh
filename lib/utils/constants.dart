@@ -1,6 +1,14 @@
+import 'package:flutter/foundation.dart';
+
 class AppConstants {
-  static const String baseUrl = 'http://10.0.2.2:3000/api';
-  // For web/desktop testing use: 'http://localhost:3000/api'
+  /// Base URL configured for Android Emulator (10.0.2.2) and Desktop/Web (localhost)
+  static String get baseUrl {
+    if (kIsWeb) return 'http://localhost:3000/api';
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:3000/api';
+    }
+    return 'http://localhost:3000/api';
+  }
 
   // Task priorities
   static const String priorityLow = 'low';

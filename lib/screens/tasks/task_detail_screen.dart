@@ -48,7 +48,12 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
     _currentUserId = await _authService.getCachedUserId();
   }
 
-  String get _taskId => ModalRoute.of(context)?.settings.arguments as String? ?? '';
+  String get _taskId {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is String) return args;
+    if (args is Task) return args.id;
+    return '';
+  }
 
   Future<void> _loadTask() async {
     setState(() {

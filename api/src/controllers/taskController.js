@@ -19,7 +19,7 @@ const getTasks = async (req, res, next) => {
 
     let query = {};
 
-    if (scope === 'created') {
+    if (scope === 'created' || scope === 'mine') {
       query.createdBy = userId;
     } else if (scope === 'assigned') {
       query.assigneeIds = userId;
@@ -64,6 +64,7 @@ const getTasks = async (req, res, next) => {
 
     return res.json({
       success: true,
+      tasks,
       data: {
         tasks,
         pagination: {
@@ -117,7 +118,12 @@ const getTaskById = async (req, res, next) => {
       .populate('assigneeIds', 'fullName email avatarUrl')
       .populate('primaryAssigneeId', 'fullName email avatarUrl');
 
-    return res.json({ success: true, data: { task, permission: req.taskPermission } });
+    return res.json({
+      success: true,
+      task,
+      permission: req.taskPermission,
+      data: { task, permission: req.taskPermission },
+    });
   } catch (error) {
     next(error);
   }

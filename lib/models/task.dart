@@ -75,8 +75,8 @@ class Task {
       title: json['title'] ?? '',
       description: json['description'],
       createdBy: parseCreatedBy(json['createdBy']),
-      assigneeIds: parseAssigneeIds(json['assignees']),
-      primaryAssigneeId: parsePrimaryAssignee(json['primaryAssignee']),
+      assigneeIds: parseAssigneeIds(json['assigneeIds'] ?? json['assignees']),
+      primaryAssigneeId: parsePrimaryAssignee(json['primaryAssigneeId'] ?? json['primaryAssignee']),
       startDate: json['startDate'] != null
           ? DateTime.tryParse(json['startDate'])
           : null,
@@ -89,7 +89,7 @@ class Task {
       createdByUser: json['createdBy'] is Map
           ? User.fromJson(json['createdBy'] as Map<String, dynamic>)
           : null,
-      assignees: parseAssignees(json['assignees']),
+      assignees: parseAssignees(json['assigneeIds'] ?? json['assignees']),
     );
   }
 

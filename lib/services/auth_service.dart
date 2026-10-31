@@ -12,8 +12,11 @@ class AuthService {
       body: {'email': email, 'password': password},
       withAuth: false,
     );
-    final token = response['token'] ?? response['accessToken'] ?? '';
-    final userData = response['user'] ?? response;
+    final data = (response is Map && response['data'] is Map)
+        ? response['data'] as Map<String, dynamic>
+        : (response is Map ? response as Map<String, dynamic> : <String, dynamic>{});
+    final token = (response['token'] ?? data['token'] ?? response['accessToken'] ?? '').toString();
+    final userData = response['user'] ?? data['user'] ?? data;
     final user = User.fromJson(userData as Map<String, dynamic>);
     await _saveSession(token, user);
     return user;
@@ -25,8 +28,11 @@ class AuthService {
       body: {'fullName': fullName, 'email': email, 'password': password},
       withAuth: false,
     );
-    final token = response['token'] ?? response['accessToken'] ?? '';
-    final userData = response['user'] ?? response;
+    final data = (response is Map && response['data'] is Map)
+        ? response['data'] as Map<String, dynamic>
+        : (response is Map ? response as Map<String, dynamic> : <String, dynamic>{});
+    final token = (response['token'] ?? data['token'] ?? response['accessToken'] ?? '').toString();
+    final userData = response['user'] ?? data['user'] ?? data;
     final user = User.fromJson(userData as Map<String, dynamic>);
     await _saveSession(token, user);
     return user;

@@ -14,7 +14,7 @@ class ApiException implements Exception {
 }
 
 class ApiClient {
-  static const String baseUrl = AppConstants.baseUrl;
+  static String get baseUrl => AppConstants.baseUrl;
 
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();

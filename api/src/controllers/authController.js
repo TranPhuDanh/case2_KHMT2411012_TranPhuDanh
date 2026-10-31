@@ -22,10 +22,13 @@ const register = async (req, res, next) => {
     const user = await User.create({ fullName, email, passwordHash });
 
     const token = generateToken(user._id);
+    const userJson = user.toPublicJSON();
     return res.status(201).json({
       success: true,
       message: 'Registration successful.',
-      data: { token, user: user.toPublicJSON() },
+      token,
+      user: userJson,
+      data: { token, user: userJson },
     });
   } catch (error) {
     next(error);
@@ -48,10 +51,13 @@ const login = async (req, res, next) => {
     }
 
     const token = generateToken(user._id);
+    const userJson = user.toPublicJSON();
     return res.json({
       success: true,
       message: 'Login successful.',
-      data: { token, user: user.toPublicJSON() },
+      token,
+      user: userJson,
+      data: { token, user: userJson },
     });
   } catch (error) {
     next(error);
