@@ -84,9 +84,9 @@ class _TaskEditScreenState extends State<TaskEditScreen> {
         'description': _descriptionController.text.trim(),
         'priority': _priority,
         'status': _status,
+        'startDate': _startDate?.toIso8601String(),
+        'dueDate': _dueDate?.toIso8601String(),
       };
-      if (_startDate != null) data['startDate'] = _startDate!.toIso8601String();
-      if (_dueDate != null) data['dueDate'] = _dueDate!.toIso8601String();
 
       await _taskService.updateTask(_task!.id, data);
       if (mounted) {
@@ -150,7 +150,8 @@ class _TaskEditScreenState extends State<TaskEditScreen> {
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            value: _priority,
+                            key: ValueKey('priority-$_priority-$_initialized'),
+                            initialValue: _priority,
                             decoration: const InputDecoration(
                               labelText: 'Ưu tiên',
                               border: OutlineInputBorder(),
@@ -167,7 +168,8 @@ class _TaskEditScreenState extends State<TaskEditScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            value: _status,
+                            key: ValueKey('status-$_status-$_initialized'),
+                            initialValue: _status,
                             decoration: const InputDecoration(
                               labelText: 'Trạng thái',
                               border: OutlineInputBorder(),

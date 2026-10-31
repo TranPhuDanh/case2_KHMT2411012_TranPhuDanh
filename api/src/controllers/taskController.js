@@ -104,7 +104,7 @@ const createTask = async (req, res, next) => {
       .populate('assigneeIds', 'fullName email avatarUrl')
       .populate('primaryAssigneeId', 'fullName email avatarUrl');
 
-    return res.status(201).json({ success: true, message: 'Task created.', data: { task: populated } });
+    return res.status(201).json({ success: true, message: 'Task created.', task: populated, data: { task: populated } });
   } catch (error) {
     next(error);
   }
@@ -180,7 +180,7 @@ const updateTask = async (req, res, next) => {
       }
     }
 
-    return res.json({ success: true, message: 'Task updated.', data: { task } });
+    return res.json({ success: true, message: 'Task updated.', task, data: { task } });
   } catch (error) {
     next(error);
   }
@@ -238,7 +238,7 @@ const updateStatus = async (req, res, next) => {
       if (notifs.length) await createBulkNotifications(notifs);
     }
 
-    return res.json({ success: true, message: 'Status updated.', data: { task } });
+    return res.json({ success: true, message: 'Status updated.', task, data: { task } });
   } catch (error) {
     next(error);
   }

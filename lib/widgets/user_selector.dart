@@ -88,7 +88,7 @@ class _UserSelectorState extends State<UserSelector> {
               color: Colors.white,
               border: Border.all(color: Colors.grey.shade300),
               borderRadius: BorderRadius.circular(8),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 6, offset: const Offset(0, 3))],
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 6, offset: const Offset(0, 3))],
             ),
             constraints: const BoxConstraints(maxHeight: 200),
             child: ListView.builder(

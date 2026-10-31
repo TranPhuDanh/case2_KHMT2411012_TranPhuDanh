@@ -179,9 +179,9 @@ class _AssignTaskScreenState extends State<AssignTaskScreen> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: Colors.indigo.withOpacity(0.1),
+                                        color: Colors.indigo.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: Colors.indigo.withOpacity(0.4)),
+                                        border: Border.all(color: Colors.indigo.withValues(alpha: 0.4)),
                                       ),
                                       child: const Text('Chính', style: TextStyle(fontSize: 11, color: Colors.indigo)),
                                     ),

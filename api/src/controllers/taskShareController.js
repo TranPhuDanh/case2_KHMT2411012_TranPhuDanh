@@ -12,7 +12,7 @@ const getShares = async (req, res, next) => {
       .populate('userId', 'fullName email avatarUrl')
       .populate('sharedBy', 'fullName email avatarUrl');
 
-    return res.json({ success: true, data: { shares } });
+    return res.json({ success: true, shares, data: { shares } });
   } catch (error) {
     next(error);
   }
@@ -68,7 +68,7 @@ const createShare = async (req, res, next) => {
       message: `${req.user.fullName} shared "${req.task.title}" with you as ${permission}.`,
     }]);
 
-    return res.status(201).json({ success: true, message: 'Task shared.', data: { share } });
+    return res.status(201).json({ success: true, message: 'Task shared.', share, data: { share } });
   } catch (error) {
     next(error);
   }
@@ -101,7 +101,7 @@ const updateShare = async (req, res, next) => {
       details: { shareId: req.params.shareId, newPermission: permission },
     });
 
-    return res.json({ success: true, message: 'Permission updated.', data: { share } });
+    return res.json({ success: true, message: 'Permission updated.', share, data: { share } });
   } catch (error) {
     next(error);
   }

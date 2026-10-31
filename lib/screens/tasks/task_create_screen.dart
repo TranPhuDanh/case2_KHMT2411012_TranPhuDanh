@@ -120,7 +120,7 @@ class _TaskCreateScreenState extends State<TaskCreateScreen> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _priority,
+                      initialValue: _priority,
                       decoration: const InputDecoration(
                         labelText: 'Ưu tiên',
                         border: OutlineInputBorder(),
@@ -137,7 +137,7 @@ class _TaskCreateScreenState extends State<TaskCreateScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _status,
+                      initialValue: _status,
                       decoration: const InputDecoration(
                         labelText: 'Trạng thái',
                         border: OutlineInputBorder(),

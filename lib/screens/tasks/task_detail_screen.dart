@@ -76,9 +76,18 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
     }
   }
 
-  bool get _isOwner => _task?.createdBy == _currentUserId;
+  bool get _isOwner => _task?.isOwner == true || _task?.createdBy == _currentUserId;
+  bool get _canEdit => _isOwner || _task?.canEdit == true;
+  bool get _canAssign => _isOwner || _task?.permission == 'editor';
+  bool get _isViewer => _task?.isViewer == true && !_isOwner;
 
   Future<void> _updateStatus(String newStatus) async {
+    if (!_canEdit) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bạn chỉ có quyền xem, không thể sửa trạng thái!')),
+      );
+      return;
+    }
     setState(() => _isUpdating = true);
     try {
       final updated = await _taskService.updateStatus(_taskId, newStatus);
@@ -178,13 +187,37 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                 const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete, color: Colors.red), title: Text('Xóa', style: TextStyle(color: Colors.red)))),
               ],
             ),
-          if (_task != null && !_isOwner)
-            IconButton(
-              icon: const Icon(Icons.edit_outlined),
-              onPressed: () async {
-                await Navigator.pushNamed(context, '/task-edit', arguments: _task);
-                _loadTask();
+          if (_task != null && !_isOwner && _canEdit)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert),
+              onSelected: (v) async {
+                if (v == 'edit') {
+                  await Navigator.pushNamed(context, '/task-edit', arguments: _task);
+                  _loadTask();
+                } else if (v == 'assign') {
+                  await Navigator.pushNamed(context, '/assign-task', arguments: _task);
+                  _loadTask();
+                }
               },
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit), title: Text('Chỉnh sửa'))),
+                if (_canAssign)
+                  const PopupMenuItem(value: 'assign', child: ListTile(leading: Icon(Icons.person_add), title: Text('Giao việc'))),
+              ],
+            ),
+          if (_task != null && _isViewer)
+            Padding(
+              padding: const EdgeInsets.only(right: 14),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text('Chỉ xem', style: TextStyle(color: Colors.white, fontSize: 12)),
+                ),
+              ),
             ),
         ],
       ),
@@ -328,9 +361,9 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
     final isActive = _task!.status == status;
     return Expanded(
       child: OutlinedButton(
-        onPressed: _isUpdating || isActive ? null : () => _updateStatus(status),
+        onPressed: _isUpdating || isActive || !_canEdit ? null : () => _updateStatus(status),
         style: OutlinedButton.styleFrom(
-          backgroundColor: isActive ? color.withOpacity(0.15) : null,
+          backgroundColor: isActive ? color.withValues(alpha: 0.15) : null,
           foregroundColor: color,
           side: BorderSide(color: color),
           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -347,7 +380,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: _activities.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
+      separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final activity = _activities[index];
         return ListTile(

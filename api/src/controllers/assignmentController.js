@@ -14,6 +14,8 @@ const getAssignees = async (req, res, next) => {
 
     return res.json({
       success: true,
+      assignees: task.assigneeIds,
+      primaryAssigneeId: task.primaryAssigneeId,
       data: {
         assignees: task.assigneeIds,
         primaryAssigneeId: task.primaryAssigneeId,
@@ -74,7 +76,7 @@ const addAssignees = async (req, res, next) => {
     }));
     if (notifs.length) await createBulkNotifications(notifs);
 
-    return res.json({ success: true, message: 'Assignees updated.', data: { task: updatedTask } });
+    return res.json({ success: true, message: 'Assignees updated.', task: updatedTask, data: { task: updatedTask } });
   } catch (error) {
     next(error);
   }
@@ -110,7 +112,7 @@ const updateAssignee = async (req, res, next) => {
       details: { targetUserId: userId, isPrimary },
     });
 
-    return res.json({ success: true, message: 'Assignee role updated.', data: { task: updatedTask } });
+    return res.json({ success: true, message: 'Assignee role updated.', task: updatedTask, data: { task: updatedTask } });
   } catch (error) {
     next(error);
   }
