@@ -60,8 +60,11 @@ class AuthService {
   }
 
   Future<User> updateProfile(String fullName) async {
-    final response = await _client.put('/auth/profile', body: {'fullName': fullName});
-    final userData = response['user'] ?? response;
+    final response = await _client.put('/auth/me', body: {'fullName': fullName});
+    final data = (response is Map && response['data'] is Map)
+        ? response['data'] as Map<String, dynamic>
+        : (response is Map ? response as Map<String, dynamic> : <String, dynamic>{});
+    final userData = response['user'] ?? data['user'] ?? response;
     final user = User.fromJson(userData as Map<String, dynamic>);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(AppConstants.userFullNameKey, user.fullName);
@@ -70,6 +73,7 @@ class AuthService {
 
   Future<void> changePassword(String oldPassword, String newPassword) async {
     await _client.put('/auth/change-password', body: {
+      'currentPassword': oldPassword,
       'oldPassword': oldPassword,
       'newPassword': newPassword,
     });

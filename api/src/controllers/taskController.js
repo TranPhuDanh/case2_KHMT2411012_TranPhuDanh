@@ -14,7 +14,7 @@ const User = require('../models/User');
 // GET /api/tasks
 const getTasks = async (req, res, next) => {
   try {
-    const { scope, status, priority, q, sortBy = 'createdAt', order = 'desc', page = 1, limit = 20 } = req.query;
+    const { scope, status, priority, q, assigneeId, sortBy = 'createdAt', order = 'desc', page = 1, limit = 20 } = req.query;
     const userId = req.user._id;
 
     let query = {};
@@ -38,6 +38,7 @@ const getTasks = async (req, res, next) => {
 
     if (status) query.status = status;
     if (priority) query.priority = priority;
+    if (assigneeId) query.assigneeIds = assigneeId;
     if (q) {
       const regex = new RegExp(q, 'i');
       query.$and = [

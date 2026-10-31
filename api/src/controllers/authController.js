@@ -67,7 +67,8 @@ const login = async (req, res, next) => {
 // GET /api/auth/me
 const getMe = async (req, res, next) => {
   try {
-    return res.json({ success: true, data: { user: req.user.toPublicJSON() } });
+    const userJson = req.user.toPublicJSON();
+    return res.json({ success: true, user: userJson, data: { user: userJson } });
   } catch (error) {
     next(error);
   }
@@ -82,7 +83,8 @@ const updateMe = async (req, res, next) => {
     if (avatarUrl !== undefined) updates.avatarUrl = avatarUrl;
 
     const user = await User.findByIdAndUpdate(req.user._id, updates, { new: true, runValidators: true });
-    return res.json({ success: true, message: 'Profile updated.', data: { user: user.toPublicJSON() } });
+    const userJson = user.toPublicJSON();
+    return res.json({ success: true, message: 'Profile updated.', user: userJson, data: { user: userJson } });
   } catch (error) {
     next(error);
   }
@@ -91,7 +93,8 @@ const updateMe = async (req, res, next) => {
 // PUT /api/auth/change-password
 const changePassword = async (req, res, next) => {
   try {
-    const { currentPassword, newPassword } = req.body;
+    const currentPassword = req.body.currentPassword || req.body.oldPassword;
+    const { newPassword } = req.body;
 
     const user = await User.findById(req.user._id).select('+passwordHash');
     const isMatch = await user.comparePassword(currentPassword);

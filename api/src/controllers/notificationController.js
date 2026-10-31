@@ -17,6 +17,7 @@ const getNotifications = async (req, res, next) => {
 
     return res.json({
       success: true,
+      notifications,
       data: {
         notifications,
         pagination: {
@@ -36,7 +37,7 @@ const getNotifications = async (req, res, next) => {
 const getUnreadCount = async (req, res, next) => {
   try {
     const count = await Notification.countDocuments({ userId: req.user._id, isRead: false });
-    return res.json({ success: true, data: { count } });
+    return res.json({ success: true, count, data: { count } });
   } catch (error) {
     next(error);
   }
@@ -55,7 +56,7 @@ const markAsRead = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Notification not found.' });
     }
 
-    return res.json({ success: true, message: 'Notification marked as read.', data: { notification } });
+    return res.json({ success: true, message: 'Notification marked as read.', notification, data: { notification } });
   } catch (error) {
     next(error);
   }

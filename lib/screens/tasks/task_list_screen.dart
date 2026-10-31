@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/task.dart';
 import '../../services/task_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/notification_service.dart';
 import '../../widgets/task_card.dart';
 import '../../widgets/loading_view.dart';
 
@@ -15,10 +16,12 @@ class TaskListScreen extends StatefulWidget {
 class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TaskService _taskService = TaskService();
+  final NotificationService _notificationService = NotificationService();
 
   List<Task> _tasks = [];
   bool _isLoading = false;
   String? _errorMessage;
+  int _unreadCount = 0;
 
   String _searchQuery = '';
   String? _filterStatus;
@@ -39,6 +42,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
       }
     });
     _loadTasks();
+    _loadUnreadCount();
   }
 
   @override
@@ -48,6 +52,13 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
   }
 
   String get _currentScope => _scopes[_tabController.index];
+
+  Future<void> _loadUnreadCount() async {
+    try {
+      final count = await _notificationService.getUnreadCount();
+      if (mounted) setState(() => _unreadCount = count);
+    } catch (_) {}
+  }
 
   Future<void> _loadTasks() async {
     if (!mounted) return;
@@ -75,6 +86,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
   void _openFilter() {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       builder: (ctx) {
         String? tempStatus = _filterStatus;
@@ -85,13 +97,27 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
         return StatefulBuilder(
           builder: (context, setModalState) {
             return Padding(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Lọc & Sắp xếp', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Lọc & Sắp xếp', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
                   const Text('Trạng thái', style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   Wrap(
@@ -104,7 +130,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                     ],
                   ),
                   const SizedBox(height: 14),
-                  const Text('Ưu tiên', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const Text('Mức độ ưu tiên', style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -121,29 +147,29 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                   Wrap(
                     spacing: 8,
                     children: [
-                      _filterChip('Ngày tạo', 'createdAt', tempSortBy, (v) => setModalState(() => tempSortBy = v ?? 'createdAt')),
                       _filterChip('Hạn hoàn thành', 'dueDate', tempSortBy, (v) => setModalState(() => tempSortBy = v ?? 'createdAt')),
-                      _filterChip('Ưu tiên', 'priority', tempSortBy, (v) => setModalState(() => tempSortBy = v ?? 'createdAt')),
+                      _filterChip('Ngày tạo', 'createdAt', tempSortBy, (v) => setModalState(() => tempSortBy = v ?? 'createdAt')),
+                      _filterChip('Mức ưu tiên', 'priority', tempSortBy, (v) => setModalState(() => tempSortBy = v ?? 'createdAt')),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
-                      const Text('Thứ tự: '),
+                      const Text('Thứ tự: ', style: TextStyle(fontWeight: FontWeight.w600)),
                       ChoiceChip(
-                        label: const Text('Mới nhất'),
+                        label: const Text('Giảm dần / Mới nhất'),
                         selected: tempOrder == 'desc',
                         onSelected: (_) => setModalState(() => tempOrder = 'desc'),
                       ),
                       const SizedBox(width: 8),
                       ChoiceChip(
-                        label: const Text('Cũ nhất'),
+                        label: const Text('Tăng dần / Cũ nhất'),
                         selected: tempOrder == 'asc',
                         onSelected: (_) => setModalState(() => tempOrder = 'asc'),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   Row(
                     children: [
                       Expanded(
@@ -201,20 +227,67 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Danh sách công việc'),
+        title: const Text('Quản lý công việc'),
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Làm mới',
-            onPressed: _loadTasks,
+            onPressed: () {
+              _loadTasks();
+              _loadUnreadCount();
+            },
+          ),
+          Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined),
+                tooltip: 'Thông báo',
+                onPressed: () async {
+                  await Navigator.pushNamed(context, '/notifications');
+                  _loadUnreadCount();
+                  _loadTasks();
+                },
+              ),
+              if (_unreadCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                    child: Text(
+                      _unreadCount > 99 ? '99+' : '$_unreadCount',
+                      style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          IconButton(
+            icon: const Icon(Icons.pie_chart_outline),
+            tooltip: 'Thống kê & Cá nhân',
+            onPressed: () async {
+              await Navigator.pushNamed(context, '/profile');
+              _loadTasks();
+            },
           ),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.account_circle),
-            tooltip: 'Tài khoản',
+            icon: const Icon(Icons.more_vert),
+            tooltip: 'Tùy chọn',
             onSelected: (value) async {
-              if (value == 'logout') {
+              if (value == 'profile') {
+                await Navigator.pushNamed(context, '/profile');
+                _loadTasks();
+              } else if (value == 'logout') {
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
@@ -250,6 +323,16 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                 ),
               ),
               const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'profile',
+                child: Row(
+                  children: [
+                    Icon(Icons.person_outline, size: 20, color: Colors.indigo),
+                    SizedBox(width: 8),
+                    Text('Hồ sơ & Thống kê'),
+                  ],
+                ),
+              ),
               const PopupMenuItem(
                 value: 'logout',
                 child: Row(
@@ -296,9 +379,11 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                 IconButton(
                   icon: Icon(
                     Icons.filter_list,
-                    color: (_filterStatus != null || _filterPriority != null) ? Colors.indigo : null,
+                    color: (_filterStatus != null || _filterPriority != null || _sortBy != 'createdAt')
+                        ? Colors.indigo
+                        : null,
                   ),
-                  tooltip: 'Lọc',
+                  tooltip: 'Lọc & Sắp xếp',
                   onPressed: _openFilter,
                 ),
               ],
@@ -317,7 +402,12 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                         const Icon(Icons.error_outline, color: Colors.red, size: 48),
                         const SizedBox(height: 8),
                         Text(_errorMessage!, textAlign: TextAlign.center),
-                        TextButton(onPressed: _loadTasks, child: const Text('Thử lại')),
+                        const SizedBox(height: 8),
+                        ElevatedButton.icon(
+                          onPressed: _loadTasks,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Thử lại'),
+                        ),
                       ],
                     ),
                   );
@@ -335,7 +425,10 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                   );
                 }
                 return RefreshIndicator(
-                  onRefresh: _loadTasks,
+                  onRefresh: () async {
+                    await _loadTasks();
+                    await _loadUnreadCount();
+                  },
                   child: ListView.builder(
                     itemCount: _tasks.length,
                     itemBuilder: (context, index) {
@@ -345,6 +438,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                         onTap: () async {
                           await Navigator.pushNamed(context, '/task-detail', arguments: task.id);
                           _loadTasks();
+                          _loadUnreadCount();
                         },
                       );
                     },
@@ -360,6 +454,7 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
         onPressed: () async {
           await Navigator.pushNamed(context, '/task-create');
           _loadTasks();
+          _loadUnreadCount();
         },
         child: const Icon(Icons.add, color: Colors.white),
       ),
