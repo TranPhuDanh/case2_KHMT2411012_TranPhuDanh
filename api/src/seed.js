@@ -106,7 +106,28 @@ const seedData = async () => {
       sharedBy: user3._id,
     });
 
-    console.log(`Created ${tasks.length} sample tasks successfully!`);
+    const Notification = require('./models/Notification');
+    await Notification.deleteMany({});
+    await Notification.create([
+      {
+        userId: user1._id,
+        taskId: tasks[0]._id,
+        type: 'task_assigned',
+        title: 'Bạn được giao công việc mới',
+        message: 'Bạn đã được chỉ định vào công việc: Thiết kế giao diện Flutter Buổi 1',
+        isRead: false,
+      },
+      {
+        userId: user1._id,
+        taskId: tasks[3]._id,
+        type: 'task_shared',
+        title: 'Công việc được chia sẻ với bạn',
+        message: 'Lê Văn Tuấn đã chia sẻ công việc với quyền xem (viewer)',
+        isRead: true,
+      },
+    ]);
+
+    console.log(`Created ${tasks.length} sample tasks and notifications successfully!`);
     await mongoose.disconnect();
     console.log('Seeding completed successfully.');
     process.exit(0);

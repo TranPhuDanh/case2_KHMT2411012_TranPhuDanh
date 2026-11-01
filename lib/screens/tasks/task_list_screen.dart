@@ -227,7 +227,28 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Quản lý công việc'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Quản lý công việc',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+            FutureBuilder<String?>(
+              future: AuthService().getCachedFullName(),
+              builder: (context, snapshot) {
+                final name = snapshot.data;
+                if (name == null || name.isEmpty) return const SizedBox.shrink();
+                return Text(
+                  'Xin chào, $name',
+                  style: const TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.normal),
+                  overflow: TextOverflow.ellipsis,
+                );
+              },
+            ),
+          ],
+        ),
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         actions: [
