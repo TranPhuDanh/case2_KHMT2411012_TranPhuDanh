@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { register, login, getMe, updateMe, changePassword } = require('../controllers/authController');
+const { register, login, logout, getMe, updateMe, changePassword } = require('../controllers/authController');
 const { authenticate } = require('../middleware/authMiddleware');
 const { validate } = require('../middleware/validateMiddleware');
 const {
@@ -12,6 +12,7 @@ const {
 
 router.post('/register', registerValidator, validate, register);
 router.post('/login', loginValidator, validate, login);
+router.post('/logout', authenticate, logout);
 router.get('/me', authenticate, getMe);
 router.get('/profile', authenticate, getMe);
 router.put('/me', authenticate, updateProfileValidator, validate, updateMe);

@@ -47,6 +47,9 @@ class AuthService {
   }
 
   Future<void> logout() async {
+    try {
+      await _client.post('/auth/logout');
+    } catch (_) {}
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(AppConstants.tokenKey);
     await prefs.remove(AppConstants.userIdKey);
