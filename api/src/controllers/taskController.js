@@ -11,6 +11,7 @@ const {
   generateTaskCreatedEmail,
 } = require('../utils/emailTemplates');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 
 // GET /api/tasks
 const getTasks = async (req, res, next) => {
@@ -113,6 +114,36 @@ const createTask = async (req, res, next) => {
       });
     } catch (emailErr) {
       console.warn('Task creation email notification warning:', emailErr.message);
+    }
+
+    // Create in-app notification for creator
+    try {
+      await Notification.create({
+        userId: req.user._id,
+        taskId: task._id,
+        type: 'task_created',
+        title: 'Tạo công việc mới thành công',
+        message: `Bạn đã tạo công việc "${task.title}".`,
+        isRead: false,
+      });
+
+      if (task.assigneeIds && task.assigneeIds.length > 0) {
+        const otherAssignees = task.assigneeIds.filter(id => id.toString() !== req.user._id.toString());
+        if (otherAssignees.length > 0) {
+          await Notification.insertMany(
+            otherAssignees.map(userId => ({
+              userId,
+              taskId: task._id,
+              type: 'task_assigned',
+              title: 'Bạn được giao công việc mới',
+              message: `${req.user.fullName} đã giao công việc "${task.title}" cho bạn.`,
+              isRead: false,
+            }))
+          );
+        }
+      }
+    } catch (notifErr) {
+      console.warn('Task creation notification warning:', notifErr.message);
     }
 
     const populated = await Task.findById(task._id)
