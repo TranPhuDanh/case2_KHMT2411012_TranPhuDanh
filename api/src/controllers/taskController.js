@@ -8,6 +8,7 @@ const { createBulkNotifications } = require('../services/notificationService');
 const {
   generateDueDateChangedEmail,
   generateTaskCompletedEmail,
+  generateTaskCreatedEmail,
 } = require('../utils/emailTemplates');
 const User = require('../models/User');
 
@@ -99,6 +100,20 @@ const createTask = async (req, res, next) => {
     });
 
     await logActivity({ taskId: task._id, userId: req.user._id, action: 'created', details: { title } });
+
+    // Send email to task creator and log to email_logs
+    try {
+      const { subject, html } = generateTaskCreatedEmail(task, req.user);
+      await sendEmail({
+        to: req.user.email,
+        subject,
+        html,
+        taskId: task._id,
+        eventType: 'task_created',
+      });
+    } catch (emailErr) {
+      console.warn('Task creation email notification warning:', emailErr.message);
+    }
 
     const populated = await Task.findById(task._id)
       .populate('createdBy', 'fullName email avatarUrl')
