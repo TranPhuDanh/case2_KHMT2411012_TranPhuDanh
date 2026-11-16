@@ -27,9 +27,25 @@ const register = async (req, res, next) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = await User.create({ fullName, email, passwordHash });
+    const user = await User.create({ fullName, email, passwordHash, lastLoginAt: new Date() });
 
-    // Send Welcome Email
+    // 1. Lưu thông tin đăng ký tài khoản vào LoginHistory trong MongoDB
+    try {
+      await LoginHistory.create({
+        userId: user._id,
+        email: user.email,
+        fullName: user.fullName,
+        ipAddress: req.ip || req.connection?.remoteAddress || '127.0.0.1',
+        clientInfo: req.headers['user-agent'] || 'Ứng dụng Flutter (CASE STUDY 2 - Đăng ký)',
+        loginAt: new Date(),
+        status: 'success',
+      });
+      console.log(`[MongoDB] Đã lưu tài khoản tạo mới ${user.email} vào collection login_histories`);
+    } catch (dbErr) {
+      console.warn('Lưu đăng ký vào MongoDB thất bại:', dbErr.message);
+    }
+
+    // 2. Gửi Email thông báo tạo tài khoản thành công mang tên CASE STUDY 2 về email cá nhân
     try {
       const { subject, html } = generateWelcomeEmail(user);
       await sendEmail({
@@ -38,11 +54,12 @@ const register = async (req, res, next) => {
         html,
         eventType: 'user_registered',
       });
+      console.log(`[EmailService] Đã kích hoạt gửi email chào mừng tạo tài khoản mới mang tên CASE STUDY 2 đến ${user.email}`);
     } catch (e) {
       console.warn('Welcome email warning:', e.message);
     }
 
-    // Create in-app welcome notification
+    // 3. Tạo thông báo chào mừng trong ứng dụng lưu vào MongoDB
     try {
       await Notification.create({
         userId: user._id,
