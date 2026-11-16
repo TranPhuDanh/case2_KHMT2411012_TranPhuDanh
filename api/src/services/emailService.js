@@ -23,7 +23,7 @@ const getEtherealTransporter = async () => {
 /**
  * Send an email and log the attempt in MongoDB
  */
-const sendEmail = async ({ to, subject, html, taskId = null, eventType }) => {
+const sendEmail = async ({ to, subject, html, text, taskId = null, eventType }) => {
   // Create log entry with pending status in MongoDB
   const log = await EmailLog.create({
     taskId,
@@ -34,7 +34,8 @@ const sendEmail = async ({ to, subject, html, taskId = null, eventType }) => {
     attempts: 0,
   });
 
-  const fromSender = process.env.SMTP_FROM || '"CASE STUDY 2" <no-reply@student.ctuet.edu.vn>';
+  const fromSender = process.env.SMTP_FROM || '"CASE STUDY 2" <tpdanh.mucdichcanhan@gmail.com>';
+  const plainText = text || (html ? html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim() : subject);
 
   // First try: Attempt using configured SMTP (e.g. Gmail)
   try {
@@ -43,6 +44,7 @@ const sendEmail = async ({ to, subject, html, taskId = null, eventType }) => {
       from: fromSender,
       to,
       subject,
+      text: plainText,
       html,
     });
 

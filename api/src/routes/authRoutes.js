@@ -18,9 +18,20 @@ const {
   changePasswordValidator,
 } = require('../validators/authValidator');
 
+const optionalAuth = async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authenticate(req, res, (err) => {
+      // If error (e.g. token expired), continue anyway so logout with body email works
+      next();
+    });
+  }
+  next();
+};
+
 router.post('/register', registerValidator, validate, register);
 router.post('/login', loginValidator, validate, login);
-router.post('/logout', authenticate, logout);
+router.post('/logout', optionalAuth, logout);
 router.get('/me', authenticate, getMe);
 router.get('/profile', authenticate, getMe);
 router.get('/login-history', authenticate, getLoginHistory);

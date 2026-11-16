@@ -1,22 +1,26 @@
+const SYSTEM_EMAIL = process.env.SYSTEM_EMAIL || 'tpdanh.mucdichcanhan@gmail.com';
+
 const generateWelcomeEmail = (user) => {
   return {
-    subject: `[CASE STUDY 2] Chào mừng ${user.fullName} (${user.email}) đến với CASE STUDY 2! 🎉`,
+    subject: `[CASE STUDY 2] Bạn đã tạo tài khoản thành công (${user.email})`,
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #E5E7EB; border-radius: 8px; padding: 24px;">
-        <div style="background: #4F46E5; color: white; padding: 16px; border-radius: 6px; text-align: center; margin-bottom: 20px;">
-          <h1 style="margin: 0; font-size: 20px; letter-spacing: 1px;">CASE STUDY 2</h1>
-          <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.9;">HỆ THỐNG QUẢN LÝ CÔNG VIỆC</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #E5E7EB; border-radius: 8px; padding: 24px; color: #1F2937;">
+        <div style="background: #4F46E5; color: white; padding: 18px; border-radius: 6px; text-align: center; margin-bottom: 20px;">
+          <h1 style="margin: 0; font-size: 22px; letter-spacing: 1px;">CASE STUDY 2</h1>
+          <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.95;">Hệ thống Quản lý công việc</p>
         </div>
-        <h2 style="color: #4F46E5; margin-top: 0;">Đăng ký tài khoản thành công! 🎉</h2>
+        <h2 style="color: #4F46E5; margin-top: 0;">Bạn đã tạo tài khoản thành công! 🎉</h2>
         <p>Xin chào <strong>${user.fullName}</strong>,</p>
-        <p>Chúc mừng bạn đã tạo thành công tài khoản trên hệ thống <strong>CASE STUDY 2</strong>.</p>
+        <p>Thông báo từ ứng dụng <strong>CASE STUDY 2</strong>: Bạn vừa tạo tài khoản mới thành công vào hệ thống với các thông tin sau:</p>
         <div style="background: #EEF2FF; border-left: 4px solid #4F46E5; padding: 16px; border-radius: 6px; margin: 16px 0;">
-          <p style="margin: 0 0 8px 0;"><strong>Họ và tên:</strong> ${user.fullName}</p>
-          <p style="margin: 0;"><strong>Tài khoản Email:</strong> ${user.email}</p>
+          <p style="margin: 0 0 8px 0;">&bull; <strong>Họ và tên:</strong> ${user.fullName}</p>
+          <p style="margin: 0 0 8px 0;">&bull; <strong>Email đăng ký:</strong> ${user.email}</p>
+          <p style="margin: 0;">&bull; <strong>Thời gian tạo tài khoản:</strong> ${new Date().toLocaleString('vi-VN')}</p>
         </div>
-        <p>Tài khoản của bạn đã được lưu trữ an toàn trong cơ sở dữ liệu MongoDB.</p>
+        <p>Tài khoản của bạn đã được kích hoạt và lưu trữ an toàn trong cơ sở dữ liệu MongoDB.</p>
+        <p>Bây giờ bạn có thể đăng nhập vào ứng dụng để tạo, quản lý và chia sẻ công việc.</p>
         <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;" />
-        <p style="color: #9CA3AF; font-size: 12px; margin-bottom: 0;">Email thông báo tự động từ hệ thống CASE STUDY 2.</p>
+        <p style="color: #6B7280; font-size: 12px; margin-bottom: 0;">Email gửi tự động từ CASE STUDY 2 &bull; Email hệ thống: ${SYSTEM_EMAIL}</p>
       </div>
     `,
   };
@@ -24,26 +28,26 @@ const generateWelcomeEmail = (user) => {
 
 const generateLoginAlertEmail = (user, clientInfo = 'Ứng dụng di động Flutter') => {
   return {
-    subject: `[CASE STUDY 2] Thông báo đăng nhập: ${user.fullName} (${user.email})`,
+    subject: `[CASE STUDY 2] Bạn đã đăng nhập vào hệ thống thành công (${user.email})`,
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #E5E7EB; border-radius: 8px; padding: 24px;">
-        <div style="background: #059669; color: white; padding: 16px; border-radius: 6px; text-align: center; margin-bottom: 20px;">
-          <h1 style="margin: 0; font-size: 20px; letter-spacing: 1px;">CASE STUDY 2</h1>
-          <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.9;">THÔNG BÁO BẢO MẬT ĐĂNG NHẬP</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #E5E7EB; border-radius: 8px; padding: 24px; color: #1F2937;">
+        <div style="background: #059669; color: white; padding: 18px; border-radius: 6px; text-align: center; margin-bottom: 20px;">
+          <h1 style="margin: 0; font-size: 22px; letter-spacing: 1px;">CASE STUDY 2</h1>
+          <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.95;">Hệ thống Quản lý công việc</p>
         </div>
-        <h2 style="color: #059669; margin-top: 0;">Phát hiện đăng nhập tài khoản</h2>
+        <h2 style="color: #059669; margin-top: 0;">Bạn đã đăng nhập vào hệ thống!</h2>
         <p>Xin chào <strong>${user.fullName}</strong>,</p>
-        <p>Hệ thống <strong>CASE STUDY 2</strong> ghi nhận tài khoản của bạn vừa đăng nhập thành công.</p>
+        <p>Hệ thống <strong>CASE STUDY 2</strong> xin thông báo bạn vừa đăng nhập thành công vào ứng dụng:</p>
         <div style="background: #F0FDF4; border-left: 4px solid #10B981; padding: 16px; border-radius: 6px; margin: 16px 0;">
-          <p style="margin: 0 0 8px 0;"><strong>Tài khoản Email:</strong> ${user.email}</p>
-          <p style="margin: 0 0 8px 0;"><strong>Họ và tên:</strong> ${user.fullName}</p>
-          <p style="margin: 0 0 8px 0;"><strong>Thời gian đăng nhập:</strong> ${new Date().toLocaleString('vi-VN')}</p>
-          <p style="margin: 0 0 8px 0;"><strong>Thiết bị / Nền tảng:</strong> ${clientInfo}</p>
-          <p style="margin: 0;"><strong>Lưu trữ:</strong> Đã ghi nhận vào lịch sử MongoDB</p>
+          <p style="margin: 0 0 8px 0;">&bull; <strong>Tài khoản Email:</strong> ${user.email}</p>
+          <p style="margin: 0 0 8px 0;">&bull; <strong>Họ và tên:</strong> ${user.fullName}</p>
+          <p style="margin: 0 0 8px 0;">&bull; <strong>Thời gian đăng nhập:</strong> ${new Date().toLocaleString('vi-VN')}</p>
+          <p style="margin: 0 0 8px 0;">&bull; <strong>Thiết bị đăng nhập:</strong> ${clientInfo}</p>
+          <p style="margin: 0;">&bull; <strong>Trạng thái:</strong> Đăng nhập thành công</p>
         </div>
-        <p style="color: #4B5563; font-size: 14px;">Thông tin đăng nhập của tài khoản <strong>${user.email}</strong> đã được lưu trữ an toàn trong MongoDB.</p>
+        <p style="color: #4B5563; font-size: 14px;">Nếu không phải bạn thực hiện đăng nhập, vui lòng kiểm tra lại tài khoản hoặc đổi mật khẩu.</p>
         <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;" />
-        <p style="color: #9CA3AF; font-size: 12px; margin-bottom: 0;">Email thông báo tự động từ dự án CASE STUDY 2.</p>
+        <p style="color: #6B7280; font-size: 12px; margin-bottom: 0;">Email gửi tự động từ CASE STUDY 2 &bull; Email hệ thống: ${SYSTEM_EMAIL}</p>
       </div>
     `,
   };
@@ -51,19 +55,47 @@ const generateLoginAlertEmail = (user, clientInfo = 'Ứng dụng di động Flu
 
 const generateLogoutAlertEmail = (user) => {
   return {
-    subject: `[CASE STUDY 2] Thông báo: Đăng xuất tài khoản ${user.email}`,
+    subject: `[CASE STUDY 2] Bạn đã đăng xuất khỏi hệ thống (${user.email})`,
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #E5E7EB; border-radius: 8px; padding: 24px;">
-        <div style="background: #4B5563; color: white; padding: 16px; border-radius: 6px; text-align: center; margin-bottom: 20px;">
-          <h1 style="margin: 0; font-size: 20px; letter-spacing: 1px;">CASE STUDY 2</h1>
-          <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.9;">THÔNG BÁO ĐĂNG XUẤT</p>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #E5E7EB; border-radius: 8px; padding: 24px; color: #1F2937;">
+        <div style="background: #4B5563; color: white; padding: 18px; border-radius: 6px; text-align: center; margin-bottom: 20px;">
+          <h1 style="margin: 0; font-size: 22px; letter-spacing: 1px;">CASE STUDY 2</h1>
+          <p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.95;">Hệ thống Quản lý công việc</p>
         </div>
-        <h2 style="color: #4B5563; margin-top: 0;">Đã đăng xuất tài khoản</h2>
+        <h2 style="color: #4B5563; margin-top: 0;">Bạn đã đăng xuất khỏi hệ thống!</h2>
         <p>Xin chào <strong>${user.fullName}</strong>,</p>
-        <p>Tài khoản <strong>${user.email}</strong> vừa đăng xuất khỏi hệ thống <strong>CASE STUDY 2</strong> lúc <strong>${new Date().toLocaleString('vi-VN')}</strong>.</p>
+        <p>Hệ thống <strong>CASE STUDY 2</strong> xin thông báo bạn vừa đăng xuất khỏi ứng dụng thành công:</p>
+        <div style="background: #F3F4F6; border-left: 4px solid #6B7280; padding: 16px; border-radius: 6px; margin: 16px 0;">
+          <p style="margin: 0 0 8px 0;">&bull; <strong>Tài khoản Email:</strong> ${user.email}</p>
+          <p style="margin: 0 0 8px 0;">&bull; <strong>Họ và tên:</strong> ${user.fullName}</p>
+          <p style="margin: 0;">&bull; <strong>Thời gian đăng xuất:</strong> ${new Date().toLocaleString('vi-VN')}</p>
+        </div>
         <p>Phiên làm việc đã kết thúc an toàn. Hẹn gặp lại bạn!</p>
         <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;" />
-        <p style="color: #9CA3AF; font-size: 12px; margin-bottom: 0;">Email thông báo tự động từ hệ thống CASE STUDY 2.</p>
+        <p style="color: #6B7280; font-size: 12px; margin-bottom: 0;">Email gửi tự động từ CASE STUDY 2 &bull; Email hệ thống: ${SYSTEM_EMAIL}</p>
+      </div>
+    `,
+  };
+};
+
+const generateAdminNotificationEmail = (action, user) => {
+  return {
+    subject: `[CASE STUDY 2 - ADMIN] Tài khoản ${user.email} vừa ${action}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #E5E7EB; border-radius: 8px; padding: 24px;">
+        <div style="background: #1E3A8A; color: white; padding: 16px; border-radius: 6px; text-align: center; margin-bottom: 20px;">
+          <h2 style="margin: 0; font-size: 20px;">CASE STUDY 2 - BÁO CÁO HỆ THỐNG</h2>
+        </div>
+        <h3 style="color: #1E3A8A;">Thông báo hoạt động người dùng:</h3>
+        <p>Kính gửi quản trị viên hệ thống CASE STUDY 2 (<strong>${SYSTEM_EMAIL}</strong>),</p>
+        <p>Hệ thống vừa ghi nhận một hành động mới:</p>
+        <div style="background: #F3F4F6; padding: 16px; border-radius: 6px; margin: 16px 0;">
+          <p style="margin: 0 0 8px 0;"><strong>Hành động:</strong> ${action}</p>
+          <p style="margin: 0 0 8px 0;"><strong>Họ và tên:</strong> ${user.fullName}</p>
+          <p style="margin: 0 0 8px 0;"><strong>Tài khoản Email:</strong> ${user.email}</p>
+          <p style="margin: 0;"><strong>Thời gian:</strong> ${new Date().toLocaleString('vi-VN')}</p>
+        </div>
+        <p>Dữ liệu đã được lưu trữ trong MongoDB.</p>
       </div>
     `,
   };
@@ -76,6 +108,7 @@ const generateTaskAssignedEmail = (task, assignee, assigner) => {
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #E5E7EB; border-radius: 8px; padding: 24px;">
         <div style="background: #4F46E5; color: white; padding: 14px; border-radius: 6px; text-align: center; margin-bottom: 20px;">
           <h2 style="margin: 0; font-size: 18px;">CASE STUDY 2 - GIAO VIỆC MỚI</h2>
+          <p style="margin: 4px 0 0 0; font-size: 12px; opacity: 0.9;">${SYSTEM_EMAIL}</p>
         </div>
         <p>Xin chào <strong>${assignee.fullName}</strong> (${assignee.email}),</p>
         <p><strong>${assigner.fullName}</strong> đã giao công việc cho bạn phụ trách:</p>
@@ -96,7 +129,7 @@ const generateTaskAssignedEmail = (task, assignee, assigner) => {
         </div>
         <p>Vui lòng đăng nhập vào ứng dụng CASE STUDY 2 để xem và cập nhật tiến độ.</p>
         <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;" />
-        <p style="color: #9CA3AF; font-size: 12px; margin-bottom: 0;">Email thông báo tự động từ CASE STUDY 2.</p>
+        <p style="color: #9CA3AF; font-size: 12px; margin-bottom: 0;">Email thông báo tự động từ CASE STUDY 2 &bull; ${SYSTEM_EMAIL}</p>
       </div>
     `,
   };
@@ -109,6 +142,7 @@ const generateTaskSharedEmail = (task, recipient, sharer, permission) => {
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #E5E7EB; border-radius: 8px; padding: 24px;">
         <div style="background: #0284C7; color: white; padding: 14px; border-radius: 6px; text-align: center; margin-bottom: 20px;">
           <h2 style="margin: 0; font-size: 18px;">CASE STUDY 2 - CHIA SẺ CÔNG VIỆC</h2>
+          <p style="margin: 4px 0 0 0; font-size: 12px; opacity: 0.9;">${SYSTEM_EMAIL}</p>
         </div>
         <p>Xin chào <strong>${recipient.fullName}</strong> (${recipient.email}),</p>
         <p><strong>${sharer.fullName}</strong> đã chia sẻ công việc với bạn với quyền: <strong>${permission === 'editor' ? 'Chỉnh sửa (Editor)' : 'Chỉ xem (Viewer)'}</strong>.</p>
@@ -118,7 +152,7 @@ const generateTaskSharedEmail = (task, recipient, sharer, permission) => {
         </div>
         <p>Hãy mở ứng dụng CASE STUDY 2 để xem chi tiết công việc.</p>
         <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;" />
-        <p style="color: #9CA3AF; font-size: 12px; margin-bottom: 0;">Email thông báo tự động từ CASE STUDY 2.</p>
+        <p style="color: #9CA3AF; font-size: 12px; margin-bottom: 0;">Email thông báo tự động từ CASE STUDY 2 &bull; ${SYSTEM_EMAIL}</p>
       </div>
     `,
   };
@@ -179,6 +213,7 @@ const generateTaskCreatedEmail = (task, creator) => {
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #E5E7EB; border-radius: 8px; padding: 24px;">
         <div style="background: #4F46E5; color: white; padding: 14px; border-radius: 6px; text-align: center; margin-bottom: 20px;">
           <h2 style="margin: 0; font-size: 18px;">CASE STUDY 2 - TẠO CÔNG VIỆC MỚI</h2>
+          <p style="margin: 4px 0 0 0; font-size: 12px; opacity: 0.9;">${SYSTEM_EMAIL}</p>
         </div>
         <p>Xin chào <strong>${creator.fullName}</strong> (${creator.email}),</p>
         <p>Bạn vừa tạo thành công công việc mới trên CASE STUDY 2 với thông tin sau:</p>
@@ -199,7 +234,7 @@ const generateTaskCreatedEmail = (task, creator) => {
         </div>
         <p>Bạn có thể mở ứng dụng CASE STUDY 2 để quản lý và cập nhật tiến độ công việc.</p>
         <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;" />
-        <p style="color: #9CA3AF; font-size: 12px; margin-bottom: 0;">Email thông báo tự động từ CASE STUDY 2.</p>
+        <p style="color: #9CA3AF; font-size: 12px; margin-bottom: 0;">Email thông báo tự động từ CASE STUDY 2 &bull; ${SYSTEM_EMAIL}</p>
       </div>
     `,
   };
@@ -209,6 +244,7 @@ module.exports = {
   generateWelcomeEmail,
   generateLoginAlertEmail,
   generateLogoutAlertEmail,
+  generateAdminNotificationEmail,
   generateTaskCreatedEmail,
   generateTaskAssignedEmail,
   generateTaskSharedEmail,
