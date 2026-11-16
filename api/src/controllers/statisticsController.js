@@ -42,7 +42,12 @@ const getTaskStatistics = async (req, res, next) => {
       byPriority[s._id] = s.count;
     }
 
-    return res.json({ success: true, data: { byStatus: result, byPriority } });
+    return res.json({
+      success: true,
+      byStatus: result,
+      byPriority,
+      data: { byStatus: result, byPriority },
+    });
   } catch (error) {
     next(error);
   }
@@ -64,14 +69,17 @@ const getAssignmentStatistics = async (req, res, next) => {
       status: 'completed',
     });
 
+    const payload = {
+      tasksCreated: created,
+      tasksAssignedToMe: assigned,
+      tasksSharedWithMe: shared,
+      tasksCompletedByMe: completedByMe,
+    };
+
     return res.json({
       success: true,
-      data: {
-        tasksCreated: created,
-        tasksAssignedToMe: assigned,
-        tasksSharedWithMe: shared,
-        tasksCompletedByMe: completedByMe,
-      },
+      ...payload,
+      data: payload,
     });
   } catch (error) {
     next(error);
@@ -103,18 +111,21 @@ const getDeadlineStatistics = async (req, res, next) => {
       Task.countDocuments({ ...baseMatch, dueDate: { $gte: now, $lte: in7d } }),
     ]);
 
+    const payload = {
+      overdue: {
+        count: overdue.length,
+        tasks: overdue,
+      },
+      dueSoon: {
+        in24Hours: dueSoon24h,
+        in7Days: dueSoon7d,
+      },
+    };
+
     return res.json({
       success: true,
-      data: {
-        overdue: {
-          count: overdue.length,
-          tasks: overdue,
-        },
-        dueSoon: {
-          in24Hours: dueSoon24h,
-          in7Days: dueSoon7d,
-        },
-      },
+      ...payload,
+      data: payload,
     });
   } catch (error) {
     next(error);

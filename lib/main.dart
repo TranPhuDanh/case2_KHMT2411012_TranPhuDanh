@@ -7,6 +7,8 @@ import 'screens/tasks/task_create_screen.dart';
 import 'screens/tasks/task_edit_screen.dart';
 import 'screens/assignment/assign_task_screen.dart';
 import 'screens/sharing/task_sharing_screen.dart';
+import 'screens/notifications/notification_screen.dart';
+import 'screens/profile/profile_screen.dart';
 import 'services/auth_service.dart';
 
 void main() async {
@@ -65,6 +67,8 @@ class TaskManagerApp extends StatelessWidget {
         '/task-edit': (context) => const TaskEditScreen(),
         '/assign-task': (context) => const AssignTaskScreen(),
         '/task-sharing': (context) => const TaskSharingScreen(),
+        '/notifications': (context) => const NotificationScreen(),
+        '/profile': (context) => const ProfileScreen(),
       },
     );
   }

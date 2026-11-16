@@ -17,6 +17,7 @@ class Task {
   // optional populated fields
   final User? createdByUser;
   final List<User>? assignees;
+  final String? permission; // owner, editor, viewer, assignee
 
   Task({
     required this.id,
@@ -33,7 +34,12 @@ class Task {
     required this.updatedAt,
     this.createdByUser,
     this.assignees,
+    this.permission,
   });
+
+  bool get isOwner => permission == 'owner';
+  bool get isViewer => permission == 'viewer';
+  bool get canEdit => permission == null || permission == 'owner' || permission == 'editor' || permission == 'assignee';
 
   factory Task.fromJson(Map<String, dynamic> json) {
     List<String> parseAssigneeIds(dynamic raw) {
@@ -90,6 +96,7 @@ class Task {
           ? User.fromJson(json['createdBy'] as Map<String, dynamic>)
           : null,
       assignees: parseAssignees(json['assigneeIds'] ?? json['assignees']),
+      permission: json['permission']?.toString(),
     );
   }
 
@@ -103,6 +110,7 @@ class Task {
     List<String>? assigneeIds,
     String? primaryAssigneeId,
     List<User>? assignees,
+    String? permission,
   }) {
     return Task(
       id: id,
@@ -119,6 +127,7 @@ class Task {
       updatedAt: DateTime.now(),
       createdByUser: createdByUser,
       assignees: assignees ?? this.assignees,
+      permission: permission ?? this.permission,
     );
   }
 }

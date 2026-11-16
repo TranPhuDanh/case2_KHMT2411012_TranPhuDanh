@@ -9,6 +9,7 @@ class TaskService {
     String? scope,
     String? status,
     String? priority,
+    String? assigneeId,
     String? q,
     String? sortBy,
     String? order,
@@ -17,6 +18,7 @@ class TaskService {
     if (scope != null) params['scope'] = scope;
     if (status != null) params['status'] = status;
     if (priority != null) params['priority'] = priority;
+    if (assigneeId != null) params['assigneeId'] = assigneeId;
     if (q != null && q.isNotEmpty) params['q'] = q;
     if (sortBy != null) params['sortBy'] = sortBy;
     if (order != null) params['order'] = order;
@@ -80,7 +82,9 @@ class TaskService {
   Future<Task> getTaskById(String id) async {
     final response = await _client.get('/tasks/$id');
     Map<String, dynamic> taskData;
+    String? permission;
     if (response is Map<String, dynamic>) {
+      permission = response['permission']?.toString() ?? response['data']?['permission']?.toString();
       if (response['task'] is Map<String, dynamic>) {
         taskData = response['task'] as Map<String, dynamic>;
       } else if (response['data'] is Map<String, dynamic> && response['data']['task'] is Map<String, dynamic>) {
@@ -92,6 +96,10 @@ class TaskService {
       }
     } else {
       throw ApiException(500, 'Invalid task response format');
+    }
+    if (permission != null && !taskData.containsKey('permission')) {
+      taskData = Map<String, dynamic>.from(taskData);
+      taskData['permission'] = permission;
     }
     return Task.fromJson(taskData);
   }

@@ -8,13 +8,15 @@ const { createBulkNotifications } = require('../services/notificationService');
 const {
   generateDueDateChangedEmail,
   generateTaskCompletedEmail,
+  generateTaskCreatedEmail,
 } = require('../utils/emailTemplates');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 
 // GET /api/tasks
 const getTasks = async (req, res, next) => {
   try {
-    const { scope, status, priority, q, sortBy = 'createdAt', order = 'desc', page = 1, limit = 20 } = req.query;
+    const { scope, status, priority, q, assigneeId, sortBy = 'createdAt', order = 'desc', page = 1, limit = 20 } = req.query;
     const userId = req.user._id;
 
     let query = {};
@@ -38,6 +40,7 @@ const getTasks = async (req, res, next) => {
 
     if (status) query.status = status;
     if (priority) query.priority = priority;
+    if (assigneeId) query.assigneeIds = assigneeId;
     if (q) {
       const regex = new RegExp(q, 'i');
       query.$and = [
@@ -99,12 +102,56 @@ const createTask = async (req, res, next) => {
 
     await logActivity({ taskId: task._id, userId: req.user._id, action: 'created', details: { title } });
 
+    // Send email to task creator and log to email_logs
+    try {
+      const { subject, html } = generateTaskCreatedEmail(task, req.user);
+      await sendEmail({
+        to: req.user.email,
+        subject,
+        html,
+        taskId: task._id,
+        eventType: 'task_created',
+      });
+    } catch (emailErr) {
+      console.warn('Task creation email notification warning:', emailErr.message);
+    }
+
+    // Create in-app notification for creator
+    try {
+      await Notification.create({
+        userId: req.user._id,
+        taskId: task._id,
+        type: 'task_created',
+        title: 'Tạo công việc mới thành công',
+        message: `Bạn đã tạo công việc "${task.title}".`,
+        isRead: false,
+      });
+
+      if (task.assigneeIds && task.assigneeIds.length > 0) {
+        const otherAssignees = task.assigneeIds.filter(id => id.toString() !== req.user._id.toString());
+        if (otherAssignees.length > 0) {
+          await Notification.insertMany(
+            otherAssignees.map(userId => ({
+              userId,
+              taskId: task._id,
+              type: 'task_assigned',
+              title: 'Bạn được giao công việc mới',
+              message: `${req.user.fullName} đã giao công việc "${task.title}" cho bạn.`,
+              isRead: false,
+            }))
+          );
+        }
+      }
+    } catch (notifErr) {
+      console.warn('Task creation notification warning:', notifErr.message);
+    }
+
     const populated = await Task.findById(task._id)
       .populate('createdBy', 'fullName email avatarUrl')
       .populate('assigneeIds', 'fullName email avatarUrl')
       .populate('primaryAssigneeId', 'fullName email avatarUrl');
 
-    return res.status(201).json({ success: true, message: 'Task created.', data: { task: populated } });
+    return res.status(201).json({ success: true, message: 'Task created.', task: populated, data: { task: populated } });
   } catch (error) {
     next(error);
   }
@@ -180,7 +227,7 @@ const updateTask = async (req, res, next) => {
       }
     }
 
-    return res.json({ success: true, message: 'Task updated.', data: { task } });
+    return res.json({ success: true, message: 'Task updated.', task, data: { task } });
   } catch (error) {
     next(error);
   }
@@ -238,7 +285,7 @@ const updateStatus = async (req, res, next) => {
       if (notifs.length) await createBulkNotifications(notifs);
     }
 
-    return res.json({ success: true, message: 'Status updated.', data: { task } });
+    return res.json({ success: true, message: 'Status updated.', task, data: { task } });
   } catch (error) {
     next(error);
   }

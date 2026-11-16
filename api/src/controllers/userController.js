@@ -4,17 +4,21 @@ const User = require('../models/User');
 const searchUsers = async (req, res, next) => {
   try {
     const { q } = req.query;
-    if (!q || q.trim().length < 1) {
-      return res.status(400).json({ success: false, message: 'Search query is required.' });
+    const query = { _id: { $ne: req.user._id } };
+
+    if (q && q.trim().length > 0) {
+      const regex = new RegExp(q.trim(), 'i');
+      query.$or = [{ fullName: regex }, { email: regex }];
     }
 
-    const regex = new RegExp(q.trim(), 'i');
-    const users = await User.find({
-      $or: [{ fullName: regex }, { email: regex }],
-      _id: { $ne: req.user._id },
-    }).limit(20);
+    const users = await User.find(query).limit(20);
+    const usersJson = users.map((u) => u.toPublicJSON());
 
-    return res.json({ success: true, data: { users: users.map((u) => u.toPublicJSON()) } });
+    return res.json({
+      success: true,
+      users: usersJson,
+      data: { users: usersJson },
+    });
   } catch (error) {
     next(error);
   }

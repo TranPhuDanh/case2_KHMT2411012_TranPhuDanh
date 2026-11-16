@@ -168,9 +168,9 @@ class _TaskSharingScreenState extends State<TaskSharingScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: Colors.indigo.withOpacity(0.08),
+                        color: Colors.indigo.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.indigo.withOpacity(0.3)),
+                        border: Border.all(color: Colors.indigo.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [

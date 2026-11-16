@@ -36,6 +36,10 @@ const emailLogSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    previewUrl: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,
