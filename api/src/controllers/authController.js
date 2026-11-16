@@ -11,7 +11,8 @@ const {
   generateAdminNotificationEmail,
 } = require('../utils/emailTemplates');
 
-const SYSTEM_EMAIL = process.env.SYSTEM_EMAIL || 'tpdanhkhmt2411012@student.ctuet.edu.vn';
+const SYSTEM_EMAIL = process.env.SYSTEM_EMAIL || 'tpdanh.mucdichcanhan@gmail.com';
+const SCHOOL_EMAIL = 'tpdanhkhmt2411012@student.ctuet.edu.vn';
 
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, {
@@ -48,7 +49,7 @@ const register = async (req, res, next) => {
       console.warn('Lưu đăng ký vào MongoDB thất bại:', dbErr.message);
     }
 
-    // 2. Gửi Email thông báo tạo tài khoản thành công từ CASE STUDY 2 (tpdanhkhmt2411012@student.ctuet.edu.vn) đến email người đăng ký
+    // 2. Gửi Email thông báo tạo tài khoản thành công đến email người đăng ký
     try {
       const { subject, html } = generateWelcomeEmail(user);
       await sendEmail({
@@ -57,12 +58,23 @@ const register = async (req, res, next) => {
         html,
         eventType: 'user_registered',
       });
-      console.log(`[EmailService] CASE STUDY 2 (${SYSTEM_EMAIL}) đã gửi email chào mừng đến: ${user.email}`);
+      console.log(`[EmailService] CASE STUDY 2 (${SYSTEM_EMAIL}) đã gửi email tạo tài khoản thành công đến: ${user.email}`);
+
+      // Gửi thêm bản sao đến email trường nếu khác email đăng ký
+      if (user.email !== SCHOOL_EMAIL) {
+        await sendEmail({
+          to: SCHOOL_EMAIL,
+          subject: `[CASE STUDY 2] Người dùng mới tạo tài khoản: ${user.email}`,
+          html,
+          eventType: 'user_registered_school_copy',
+        });
+        console.log(`[EmailService] Đã gửi thông báo đăng ký đến email trường: ${SCHOOL_EMAIL}`);
+      }
     } catch (e) {
       console.warn('Welcome email warning:', e.message);
     }
 
-    // 3. Đồng thời gửi thông báo đến email quản trị hệ thống CASE STUDY 2 (tpdanhkhmt2411012@student.ctuet.edu.vn)
+    // 3. Đồng thời gửi thông báo đến email quản trị hệ thống CASE STUDY 2
     if (user.email !== SYSTEM_EMAIL) {
       try {
         const adminEmail = generateAdminNotificationEmail('đăng ký tài khoản mới', user);
@@ -145,7 +157,7 @@ const login = async (req, res, next) => {
       console.warn('Lưu LoginHistory vào MongoDB thất bại:', dbErr.message);
     }
 
-    // 3. Gửi Email cảnh báo đăng nhập từ CASE STUDY 2 (tpdanhkhmt2411012@student.ctuet.edu.vn) đến email đăng nhập
+    // 3. Gửi Email thông báo đăng nhập đến email đăng nhập
     try {
       const { subject, html } = generateLoginAlertEmail(user, req.headers['user-agent'] || 'Ứng dụng di động Flutter (CASE STUDY 2)');
       await sendEmail({
@@ -154,12 +166,23 @@ const login = async (req, res, next) => {
         html,
         eventType: 'user_login',
       });
-      console.log(`[EmailService] CASE STUDY 2 (${SYSTEM_EMAIL}) đã gửi email cảnh báo đăng nhập đến: ${user.email}`);
+      console.log(`[EmailService] CASE STUDY 2 (${SYSTEM_EMAIL}) đã gửi email thông báo đăng nhập đến: ${user.email}`);
+
+      // Gửi thêm bản sao đến email trường nếu khác email đăng nhập
+      if (user.email !== SCHOOL_EMAIL) {
+        await sendEmail({
+          to: SCHOOL_EMAIL,
+          subject: `[CASE STUDY 2] Tài khoản ${user.email} vừa đăng nhập vào hệ thống`,
+          html,
+          eventType: 'user_login_school_copy',
+        });
+        console.log(`[EmailService] Đã gửi thông báo đăng nhập đến email trường: ${SCHOOL_EMAIL}`);
+      }
     } catch (e) {
       console.warn('Login alert email warning:', e.message);
     }
 
-    // 4. Đồng thời gửi thông báo đến email hệ thống CASE STUDY 2 (tpdanhkhmt2411012@student.ctuet.edu.vn)
+    // 4. Đồng thời gửi thông báo đến email hệ thống CASE STUDY 2
     if (user.email !== SYSTEM_EMAIL) {
       try {
         const adminEmail = generateAdminNotificationEmail('đăng nhập vào hệ thống', user);
@@ -205,25 +228,41 @@ const login = async (req, res, next) => {
 // POST /api/auth/logout
 const logout = async (req, res, next) => {
   try {
-    if (req.user) {
+    let user = req.user;
+    if (!user && req.body && req.body.email) {
+      user = await User.findOne({ email: req.body.email });
+    }
+
+    if (user) {
       // 1. Gửi Email thông báo đăng xuất từ CASE STUDY 2 đến email người đăng xuất
       try {
-        const { subject, html } = generateLogoutAlertEmail(req.user);
+        const { subject, html } = generateLogoutAlertEmail(user);
         await sendEmail({
-          to: req.user.email,
+          to: user.email,
           subject,
           html,
           eventType: 'user_logout',
         });
-        console.log(`[EmailService] CASE STUDY 2 (${SYSTEM_EMAIL}) đã gửi email đăng xuất đến: ${req.user.email}`);
+        console.log(`[EmailService] CASE STUDY 2 (${SYSTEM_EMAIL}) đã gửi email đăng xuất đến: ${user.email}`);
+
+        // Gửi thêm bản sao đến email trường nếu khác email đăng xuất
+        if (user.email !== SCHOOL_EMAIL) {
+          await sendEmail({
+            to: SCHOOL_EMAIL,
+            subject: `[CASE STUDY 2] Tài khoản ${user.email} vừa đăng xuất khỏi hệ thống`,
+            html,
+            eventType: 'user_logout_school_copy',
+          });
+          console.log(`[EmailService] Đã gửi thông báo đăng xuất đến email trường: ${SCHOOL_EMAIL}`);
+        }
       } catch (e) {
         console.warn('Logout alert email warning:', e.message);
       }
 
       // 2. Gửi thông báo đến email hệ thống CASE STUDY 2
-      if (req.user.email !== SYSTEM_EMAIL) {
+      if (user.email !== SYSTEM_EMAIL) {
         try {
-          const adminEmail = generateAdminNotificationEmail('đăng xuất khỏi hệ thống', req.user);
+          const adminEmail = generateAdminNotificationEmail('đăng xuất khỏi hệ thống', user);
           await sendEmail({
             to: SYSTEM_EMAIL,
             subject: adminEmail.subject,
@@ -238,10 +277,10 @@ const logout = async (req, res, next) => {
       // 3. Tạo thông báo đăng xuất trong ứng dụng lưu vào MongoDB
       try {
         await Notification.create({
-          userId: req.user._id,
+          userId: user._id,
           type: 'security_alert',
           title: '[CASE STUDY 2] Đã đăng xuất tài khoản',
-          message: `Tài khoản ${req.user.email} đã đăng xuất an toàn khỏi CASE STUDY 2 lúc ${new Date().toLocaleTimeString('vi-VN')}.`,
+          message: `Tài khoản ${user.email} đã đăng xuất an toàn khỏi CASE STUDY 2 lúc ${new Date().toLocaleTimeString('vi-VN')}.`,
           isRead: false,
         });
       } catch (e) {
