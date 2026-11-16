@@ -26,6 +26,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    lastLoginAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -42,6 +46,7 @@ userSchema.methods.toPublicJSON = function () {
     fullName: this.fullName,
     email: this.email,
     avatarUrl: this.avatarUrl,
+    lastLoginAt: this.lastLoginAt,
     createdAt: this.createdAt,
     updatedAt: this.updatedAt,
   };

@@ -23,10 +23,11 @@ const connectDB = async () => {
         const bcrypt = require('bcryptjs');
         const Task = require('../models/Task');
         const Notification = require('../models/Notification');
+        const LoginHistory = require('../models/LoginHistory');
         const passwordHash = await bcrypt.hash('Danh_123', 10);
         const users = await User.create([
-          { fullName: 'TPDanh', email: 'tpdanhkhmt2411012@student.ctuet.edu.vn', passwordHash },
-          { fullName: 'Trần Phú Danh', email: 'danh@example.com', passwordHash },
+          { fullName: 'TPDanh', email: 'tpdanhkhmt2411012@student.ctuet.edu.vn', passwordHash, lastLoginAt: new Date() },
+          { fullName: 'Trần Phú Danh', email: 'danh@example.com', passwordHash, lastLoginAt: new Date() },
           { fullName: 'Nguyễn Thị Lan', email: 'lan@example.com', passwordHash },
           { fullName: 'Lê Văn Tuấn', email: 'tuan@example.com', passwordHash },
         ]);
@@ -65,13 +66,13 @@ const connectDB = async () => {
           status: 'in_progress',
         });
 
-        // Add 4 notifications for TPDanh
+        // Add 4 notifications for TPDanh with CASE STUDY 2 branding
         await Notification.create([
           {
             userId: users[0]._id,
             taskId: task1._id,
             type: 'task_created',
-            title: 'Tạo công việc mới thành công',
+            title: '[CASE STUDY 2] Tạo công việc mới thành công',
             message: 'Bạn đã tạo công việc "Ngyngay" thành công. Mức độ ưu tiên: Cao.',
             isRead: false,
           },
@@ -79,7 +80,7 @@ const connectDB = async () => {
             userId: users[0]._id,
             taskId: task1._id,
             type: 'task_assigned',
-            title: 'Bạn được giao công việc mới',
+            title: '[CASE STUDY 2] Bạn được giao công việc mới',
             message: 'Trần Phú Danh đã giao công việc "Xây dựng REST API Backend Node.js" cho bạn phụ trách.',
             isRead: false,
           },
@@ -87,21 +88,32 @@ const connectDB = async () => {
             userId: users[0]._id,
             taskId: task1._id,
             type: 'task_shared',
-            title: 'Công việc được chia sẻ với bạn',
+            title: '[CASE STUDY 2] Công việc được chia sẻ với bạn',
             message: 'Nguyễn Thị Lan đã chia sẻ công việc "Thiết kế giao diện Flutter Buổi 1" với quyền Chỉnh sửa (Editor).',
             isRead: false,
           },
           {
             userId: users[0]._id,
             taskId: task1._id,
-            type: 'deadline_reminder',
-            title: 'Nhắc nhở hạn chót công việc',
-            message: 'Công việc "Ngyngay" sắp đến hạn hoàn thành vào ngày 29/11/2026.',
+            type: 'security_alert',
+            title: '[CASE STUDY 2] Đăng nhập thành công',
+            message: `Tài khoản ${users[0].email} đã đăng nhập vào hệ thống CASE STUDY 2.`,
             isRead: true,
           },
         ]);
 
-        console.log('Initial mock data seeded: 4 users, 3 tasks, 4 notifications.');
+        // Add login history record
+        await LoginHistory.create({
+          userId: users[0]._id,
+          email: users[0].email,
+          fullName: users[0].fullName,
+          ipAddress: '127.0.0.1',
+          clientInfo: 'CASE STUDY 2 - Flutter App',
+          loginAt: new Date(),
+          status: 'success',
+        });
+
+        console.log('Initial mock data seeded: 4 users, 3 tasks, 4 notifications, 1 login history.');
         console.log('Login credentials: tpdanhkhmt2411012@student.ctuet.edu.vn / Danh_123');
       }
     } catch (inMemError) {

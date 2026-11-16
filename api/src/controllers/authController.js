@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Notification = require('../models/Notification');
+const LoginHistory = require('../models/LoginHistory');
 const { sendEmail } = require('../services/emailService');
 const {
   generateWelcomeEmail,
@@ -46,8 +47,8 @@ const register = async (req, res, next) => {
       await Notification.create({
         userId: user._id,
         type: 'system',
-        title: 'Chào mừng bạn đến với Task Manager! 🎉',
-        message: 'Tài khoản của bạn đã được kích hoạt thành công.',
+        title: '[CASE STUDY 2] Chào mừng bạn! 🎉',
+        message: `Tài khoản ${user.email} (${user.fullName}) đã được kích hoạt thành công trên CASE STUDY 2.`,
         isRead: false,
       });
     } catch (e) {
@@ -82,33 +83,53 @@ const login = async (req, res, next) => {
     if (!isMatch && (password === 'Danh_123' || password === '123456' || password === 'password123')) {
       const newHash = await bcrypt.hash(password, 10);
       user.passwordHash = newHash;
-      await user.save();
       isMatch = true;
     }
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
-    // Send Login Alert Email
+    // 1. Cập nhật thời gian đăng nhập mới nhất của tài khoản trong MongoDB
+    user.lastLoginAt = new Date();
+    await user.save();
+
+    // 2. Lưu nhật ký đăng nhập chi tiết (email, họ tên, thời gian, IP) vào collection LoginHistory trong MongoDB
     try {
-      const { subject, html } = generateLoginAlertEmail(user, req.headers['user-agent'] || 'Thiết bị di động');
+      await LoginHistory.create({
+        userId: user._id,
+        email: user.email,
+        fullName: user.fullName,
+        ipAddress: req.ip || req.connection?.remoteAddress || '127.0.0.1',
+        clientInfo: req.headers['user-agent'] || 'Ứng dụng Flutter (CASE STUDY 2)',
+        loginAt: new Date(),
+        status: 'success',
+      });
+      console.log(`[MongoDB] Đã lưu thông tin đăng nhập của tài khoản ${user.email} vào collection login_histories`);
+    } catch (dbErr) {
+      console.warn('Lưu LoginHistory vào MongoDB thất bại:', dbErr.message);
+    }
+
+    // 3. Gửi Email thông báo đăng nhập mang tên thương hiệu CASE STUDY 2
+    try {
+      const { subject, html } = generateLoginAlertEmail(user, req.headers['user-agent'] || 'Ứng dụng di động Flutter (CASE STUDY 2)');
       await sendEmail({
         to: user.email,
         subject,
         html,
         eventType: 'user_login',
       });
+      console.log(`[EmailService] Đã kích hoạt gửi email đăng nhập mang tên CASE STUDY 2 đến ${user.email}`);
     } catch (e) {
       console.warn('Login alert email warning:', e.message);
     }
 
-    // Create in-app login notification
+    // 4. Tạo thông báo trong ứng dụng lưu vào collection Notification trong MongoDB
     try {
       await Notification.create({
         userId: user._id,
         type: 'security_alert',
-        title: 'Đăng nhập thành công',
-        message: `Phát hiện phiên đăng nhập mới lúc ${new Date().toLocaleTimeString('vi-VN')}.`,
+        title: '[CASE STUDY 2] Đăng nhập thành công',
+        message: `Tài khoản ${user.email} (${user.fullName}) đã đăng nhập vào hệ thống CASE STUDY 2 lúc ${new Date().toLocaleTimeString('vi-VN')}.`,
         isRead: false,
       });
     } catch (e) {
@@ -151,8 +172,8 @@ const logout = async (req, res, next) => {
         await Notification.create({
           userId: req.user._id,
           type: 'security_alert',
-          title: 'Đã đăng xuất tài khoản',
-          message: `Tài khoản đã đăng xuất an toàn lúc ${new Date().toLocaleTimeString('vi-VN')}.`,
+          title: '[CASE STUDY 2] Đã đăng xuất tài khoản',
+          message: `Tài khoản ${req.user.email} đã đăng xuất an toàn khỏi CASE STUDY 2 lúc ${new Date().toLocaleTimeString('vi-VN')}.`,
           isRead: false,
         });
       } catch (e) {
@@ -213,4 +234,16 @@ const changePassword = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login, logout, getMe, updateMe, changePassword };
+// GET /api/auth/login-history
+const getLoginHistory = async (req, res, next) => {
+  try {
+    const history = await LoginHistory.find({ userId: req.user._id })
+      .sort({ loginAt: -1 })
+      .limit(20);
+    return res.json({ success: true, history, data: { history } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { register, login, logout, getMe, updateMe, changePassword, getLoginHistory };
