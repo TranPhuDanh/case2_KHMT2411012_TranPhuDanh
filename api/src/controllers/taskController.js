@@ -8,13 +8,15 @@ const { createBulkNotifications } = require('../services/notificationService');
 const {
   generateDueDateChangedEmail,
   generateTaskCompletedEmail,
+  generateTaskCreatedEmail,
 } = require('../utils/emailTemplates');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 
 // GET /api/tasks
 const getTasks = async (req, res, next) => {
   try {
-    const { scope, status, priority, q, sortBy = 'createdAt', order = 'desc', page = 1, limit = 20 } = req.query;
+    const { scope, status, priority, q, assigneeId, sortBy = 'createdAt', order = 'desc', page = 1, limit = 20 } = req.query;
     const userId = req.user._id;
 
     let query = {};
@@ -38,6 +40,7 @@ const getTasks = async (req, res, next) => {
 
     if (status) query.status = status;
     if (priority) query.priority = priority;
+    if (assigneeId) query.assigneeIds = assigneeId;
     if (q) {
       const regex = new RegExp(q, 'i');
       query.$and = [
@@ -99,6 +102,50 @@ const createTask = async (req, res, next) => {
 
     await logActivity({ taskId: task._id, userId: req.user._id, action: 'created', details: { title } });
 
+    // Send email to task creator and log to email_logs
+    try {
+      const { subject, html } = generateTaskCreatedEmail(task, req.user);
+      await sendEmail({
+        to: req.user.email,
+        subject,
+        html,
+        taskId: task._id,
+        eventType: 'task_created',
+      });
+    } catch (emailErr) {
+      console.warn('Task creation email notification warning:', emailErr.message);
+    }
+
+    // Create in-app notification for creator
+    try {
+      await Notification.create({
+        userId: req.user._id,
+        taskId: task._id,
+        type: 'task_created',
+        title: 'Tạo công việc mới thành công',
+        message: `Bạn đã tạo công việc "${task.title}".`,
+        isRead: false,
+      });
+
+      if (task.assigneeIds && task.assigneeIds.length > 0) {
+        const otherAssignees = task.assigneeIds.filter(id => id.toString() !== req.user._id.toString());
+        if (otherAssignees.length > 0) {
+          await Notification.insertMany(
+            otherAssignees.map(userId => ({
+              userId,
+              taskId: task._id,
+              type: 'task_assigned',
+              title: 'Bạn được giao công việc mới',
+              message: `${req.user.fullName} đã giao công việc "${task.title}" cho bạn.`,
+              isRead: false,
+            }))
+          );
+        }
+      }
+    } catch (notifErr) {
+      console.warn('Task creation notification warning:', notifErr.message);
+    }
+
     const populated = await Task.findById(task._id)
       .populate('createdBy', 'fullName email avatarUrl')
       .populate('assigneeIds', 'fullName email avatarUrl')
@@ -147,6 +194,36 @@ const updateTask = async (req, res, next) => {
       .populate('primaryAssigneeId', 'fullName email avatarUrl');
 
     await logActivity({ taskId: task._id, userId: req.user._id, action: 'updated', details: updates });
+
+    // Tạo thông báo chỉnh sửa cho người sửa và các thành viên được giao
+    try {
+      await Notification.create({
+        userId: req.user._id,
+        taskId: task._id,
+        type: 'task_edited',
+        title: 'Chỉnh sửa công việc thành công',
+        message: `Bạn vừa cập nhật thông tin công việc "${task.title}".`,
+        isRead: false,
+      });
+
+      if (task.assigneeIds && task.assigneeIds.length > 0) {
+        const otherAssignees = task.assigneeIds.filter(a => (a._id ? a._id.toString() : a.toString()) !== req.user._id.toString());
+        if (otherAssignees.length > 0) {
+          await Notification.insertMany(
+            otherAssignees.map(a => ({
+              userId: a._id || a,
+              taskId: task._id,
+              type: 'task_edited',
+              title: 'Công việc được cập nhật',
+              message: `${req.user.fullName} vừa chỉnh sửa công việc "${task.title}".`,
+              isRead: false,
+            }))
+          );
+        }
+      }
+    } catch (notifErr) {
+      console.warn('Task update notification warning:', notifErr.message);
+    }
 
     // Send emails if dueDate changed
     if (updates.dueDate !== undefined && String(oldDueDate) !== String(updates.dueDate)) {
@@ -217,6 +294,18 @@ const updateStatus = async (req, res, next) => {
       details: { from: oldStatus, to: status },
     });
 
+    // Tạo thông báo lịch sử thay đổi trạng thái
+    try {
+      await Notification.create({
+        userId: req.user._id,
+        taskId: task._id,
+        type: 'status_changed',
+        title: 'Lịch sử: Đổi trạng thái công việc',
+        message: `Công việc "${task.title}" đã chuyển trạng thái từ "${oldStatus}" sang "${status}".`,
+        isRead: false,
+      });
+    } catch (_) {}
+
     // Notify and email on completion
     if (status === 'completed' && oldStatus !== 'completed') {
       const assignees = await User.find({ _id: { $in: task.assigneeIds } });
@@ -268,4 +357,78 @@ const getEmailLogs = async (req, res, next) => {
   }
 };
 
-module.exports = { getTasks, createTask, getTaskById, updateTask, deleteTask, updateStatus, getActivities, getEmailLogs };
+// POST /api/tasks/:id/send-email
+const sendTaskEmail = async (req, res, next) => {
+  try {
+    const task = await Task.findById(req.task._id)
+      .populate('createdBy', 'fullName email avatarUrl')
+      .populate('assigneeIds', 'fullName email avatarUrl');
+
+    const subject = `[CASE STUDY 2] Thông báo cập nhật công việc: ${task.title}`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #E5E7EB; border-radius: 8px; padding: 24px; color: #1F2937;">
+        <div style="background: #4F46E5; color: white; padding: 16px; border-radius: 6px; text-align: center; margin-bottom: 20px;">
+          <h2 style="margin: 0; font-size: 18px;">CASE STUDY 2 - THÔNG BÁO CÔNG VIỆC</h2>
+        </div>
+        <p>Xin chào bạn,</p>
+        <p><strong>${req.user.fullName}</strong> (${req.user.email}) vừa kích hoạt gửi thông báo cho công việc:</p>
+        <div style="background: #EEF2FF; border-left: 4px solid #4F46E5; padding: 16px; border-radius: 6px; margin: 16px 0;">
+          <h3 style="margin-top: 0; color: #1F2937;">${task.title}</h3>
+          ${task.description ? `<p style="color: #4B5563;">${task.description}</p>` : ''}
+          <p style="margin: 4px 0;">&bull; <strong>Trạng thái:</strong> ${task.status}</p>
+          <p style="margin: 4px 0;">&bull; <strong>Mức ưu tiên:</strong> ${task.priority}</p>
+          ${task.dueDate ? `<p style="margin: 4px 0;">&bull; <strong>Hạn hoàn thành:</strong> ${new Date(task.dueDate).toLocaleDateString('vi-VN')}</p>` : ''}
+        </div>
+        <p>Thời gian gửi: ${new Date().toLocaleString('vi-VN')}</p>
+        <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 20px 0;" />
+        <p style="color: #6B7280; font-size: 12px; margin-bottom: 0;">Email gửi tự động từ hệ thống CASE STUDY 2.</p>
+      </div>
+    `;
+
+    // 1. Gửi email cho người thao tác
+    await sendEmail({
+      to: req.user.email,
+      subject,
+      html,
+      taskId: task._id,
+      eventType: 'task_manual_notification',
+    });
+
+    // 2. Gửi thêm bản sao đến email trường
+    if (req.user.email !== 'tpdanhkhmt2411012@student.ctuet.edu.vn') {
+      try {
+        await sendEmail({
+          to: 'tpdanhkhmt2411012@student.ctuet.edu.vn',
+          subject: `[Bản sao thông báo] ${subject}`,
+          html,
+          taskId: task._id,
+          eventType: 'task_manual_notification_copy',
+        });
+      } catch (_) {}
+    }
+
+    // 3. Ghi nhật ký hoạt động
+    await logActivity({
+      taskId: task._id,
+      userId: req.user._id,
+      action: 'email_sent',
+      details: { sentBy: req.user.fullName, recipient: req.user.email },
+    });
+
+    // 4. Tạo thông báo trong app cho người dùng
+    await Notification.create({
+      userId: req.user._id,
+      taskId: task._id,
+      type: 'email_sent',
+      title: 'Đã gửi email thông báo công việc',
+      message: `Hệ thống CASE STUDY 2 đã gửi email thông báo công việc "${task.title}" đến ${req.user.email}.`,
+      isRead: false,
+    });
+
+    return res.json({ success: true, message: 'Đã gửi email thông báo công việc thành công!' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { getTasks, createTask, getTaskById, updateTask, deleteTask, updateStatus, getActivities, getEmailLogs, sendTaskEmail };

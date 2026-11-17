@@ -60,13 +60,29 @@ const createShare = async (req, res, next) => {
     const { subject, html } = generateTaskSharedEmail(req.task, targetUser, req.user, permission);
     await sendEmail({ to: targetUser.email, subject, html, taskId: req.task._id, eventType: 'task_shared' });
 
-    await createBulkNotifications([{
-      userId: targetUser._id,
-      taskId: req.task._id,
-      type: 'task_shared',
-      title: 'Task shared with you',
-      message: `${req.user.fullName} shared "${req.task.title}" with you as ${permission}.`,
-    }]);
+    await createBulkNotifications([
+      {
+        userId: targetUser._id,
+        taskId: req.task._id,
+        type: 'task_shared',
+        title: 'Task shared with you',
+        message: `${req.user.fullName} shared "${req.task.title}" with you as ${permission}.`,
+      },
+      {
+        userId: req.user._id,
+        taskId: req.task._id,
+        type: 'task_shared',
+        title: 'Chia sẻ công việc thành công',
+        message: `Bạn đã chia sẻ "${req.task.title}" với quyền ${permission}.`,
+      },
+      {
+        userId: req.user._id,
+        taskId: req.task._id,
+        type: 'email_sent',
+        title: 'Đã gửi email chia sẻ',
+        message: `Email thông báo chia sẻ "${req.task.title}" đã được gửi đi thành công.`,
+      },
+    ]);
 
     return res.status(201).json({ success: true, message: 'Task shared.', share, data: { share } });
   } catch (error) {

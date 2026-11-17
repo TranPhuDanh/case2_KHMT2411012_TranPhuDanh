@@ -9,6 +9,7 @@ class TaskService {
     String? scope,
     String? status,
     String? priority,
+    String? assigneeId,
     String? q,
     String? sortBy,
     String? order,
@@ -17,6 +18,7 @@ class TaskService {
     if (scope != null) params['scope'] = scope;
     if (status != null) params['status'] = status;
     if (priority != null) params['priority'] = priority;
+    if (assigneeId != null) params['assigneeId'] = assigneeId;
     if (q != null && q.isNotEmpty) params['q'] = q;
     if (sortBy != null) params['sortBy'] = sortBy;
     if (order != null) params['order'] = order;
@@ -178,5 +180,9 @@ class TaskService {
     } catch (_) {
       return [];
     }
+  }
+
+  Future<void> sendNotificationEmail(String id) async {
+    await _client.post('/tasks/$id/send-email');
   }
 }
