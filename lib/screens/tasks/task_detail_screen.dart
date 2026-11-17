@@ -103,6 +103,29 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
     }
   }
 
+  Future<void> _sendEmailNotification() async {
+    setState(() => _isUpdating = true);
+    try {
+      await _taskService.sendNotificationEmail(_taskId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã gửi email thông báo công việc thành công! (Kiểm tra cả chuông thông báo)'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi gửi email: ${e.toString()}'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUpdating = false);
+    }
+  }
+
   Future<void> _deleteTask() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -164,6 +187,12 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         actions: [
+          if (_task != null)
+            IconButton(
+              icon: const Icon(Icons.mark_email_read_outlined),
+              tooltip: 'Gửi mail thông báo',
+              onPressed: _isUpdating ? null : _sendEmailNotification,
+            ),
           if (_task != null && _isOwner)
             PopupMenuButton<String>(
               onSelected: (v) async {
@@ -176,6 +205,8 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                 } else if (v == 'share') {
                   await Navigator.pushNamed(context, '/task-sharing', arguments: _task);
                   _loadTask();
+                } else if (v == 'email') {
+                  _sendEmailNotification();
                 } else if (v == 'delete') {
                   _deleteTask();
                 }
@@ -184,6 +215,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                 const PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit), title: Text('Chỉnh sửa'))),
                 const PopupMenuItem(value: 'assign', child: ListTile(leading: Icon(Icons.person_add), title: Text('Giao việc'))),
                 const PopupMenuItem(value: 'share', child: ListTile(leading: Icon(Icons.share), title: Text('Chia sẻ'))),
+                const PopupMenuItem(value: 'email', child: ListTile(leading: Icon(Icons.email_outlined, color: Colors.indigo), title: Text('Gửi mail thông báo'))),
                 const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete, color: Colors.red), title: Text('Xóa', style: TextStyle(color: Colors.red)))),
               ],
             ),
@@ -281,7 +313,75 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                 PriorityBadge(priority: task.priority),
               ],
             ),
-            const Divider(height: 28),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.indigo.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.indigo.shade100),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.notifications_active, size: 16, color: Colors.indigo),
+                      SizedBox(width: 6),
+                      Text(
+                        'Thao tác công việc (Tự động báo lên chuông thông báo):',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.indigo),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ActionChip(
+                        avatar: const Icon(Icons.history, size: 16, color: Colors.indigo),
+                        label: const Text('Lịch sử việc', style: TextStyle(fontSize: 12)),
+                        onPressed: () => _tabController.animateTo(1),
+                      ),
+                      if (_canAssign)
+                        ActionChip(
+                          avatar: const Icon(Icons.person_add_alt_1, size: 16, color: Colors.blue),
+                          label: const Text('Giao việc', style: TextStyle(fontSize: 12)),
+                          onPressed: () async {
+                            await Navigator.pushNamed(context, '/assign-task', arguments: _task);
+                            _loadTask();
+                          },
+                        ),
+                      if (_isOwner)
+                        ActionChip(
+                          avatar: const Icon(Icons.share, size: 16, color: Colors.teal),
+                          label: const Text('Chia sẻ', style: TextStyle(fontSize: 12)),
+                          onPressed: () async {
+                            await Navigator.pushNamed(context, '/task-sharing', arguments: _task);
+                            _loadTask();
+                          },
+                        ),
+                      if (_canEdit)
+                        ActionChip(
+                          avatar: const Icon(Icons.edit_note, size: 16, color: Colors.orange),
+                          label: const Text('Chỉnh sửa', style: TextStyle(fontSize: 12)),
+                          onPressed: () async {
+                            await Navigator.pushNamed(context, '/task-edit', arguments: _task);
+                            _loadTask();
+                          },
+                        ),
+                      ActionChip(
+                        avatar: const Icon(Icons.mark_email_read, size: 16, color: Colors.deepPurple),
+                        label: const Text('Gửi mail', style: TextStyle(fontSize: 12)),
+                        onPressed: _isUpdating ? null : _sendEmailNotification,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 24),
             if (task.description != null && task.description!.isNotEmpty) ...[
               _buildInfoRow(
                 Icons.description_outlined,

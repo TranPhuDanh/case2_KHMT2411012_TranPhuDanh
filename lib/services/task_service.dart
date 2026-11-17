@@ -181,4 +181,8 @@ class TaskService {
       return [];
     }
   }
+
+  Future<void> sendNotificationEmail(String id) async {
+    await _client.post('/tasks/$id/send-email');
+  }
 }

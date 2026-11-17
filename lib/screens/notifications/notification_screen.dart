@@ -16,6 +16,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   List<NotificationModel> _notifications = [];
   bool _isLoading = false;
   String? _errorMessage;
+  String _selectedFilter = 'all'; // all, history, assign, share, edit, email
 
   @override
   void initState() {
@@ -91,18 +92,52 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
+  List<NotificationModel> get _filteredNotifications {
+    if (_selectedFilter == 'all') return _notifications;
+    if (_selectedFilter == 'history') {
+      return _notifications.where((n) =>
+        n.type == 'status_changed' ||
+        n.type == 'task_updated' ||
+        n.type == 'due_date_changed' ||
+        n.type == 'task_completed'
+      ).toList();
+    }
+    if (_selectedFilter == 'assign') {
+      return _notifications.where((n) => n.type == 'task_assigned').toList();
+    }
+    if (_selectedFilter == 'share') {
+      return _notifications.where((n) => n.type == 'task_shared').toList();
+    }
+    if (_selectedFilter == 'edit') {
+      return _notifications.where((n) => n.type == 'task_edited').toList();
+    }
+    if (_selectedFilter == 'email') {
+      return _notifications.where((n) => n.type == 'email_sent').toList();
+    }
+    return _notifications;
+  }
+
   IconData _getNotificationIcon(String type) {
     switch (type) {
       case 'task_assigned':
-        return Icons.assignment_ind_outlined;
+        return Icons.person_add_alt_1;
       case 'task_shared':
-        return Icons.share_outlined;
+        return Icons.share;
+      case 'task_edited':
+        return Icons.edit_note;
+      case 'email_sent':
+        return Icons.mark_email_read;
+      case 'status_changed':
       case 'task_updated':
-        return Icons.edit_calendar_outlined;
+        return Icons.history;
       case 'task_completed':
         return Icons.check_circle_outline;
       case 'deadline_reminder':
         return Icons.alarm_on_outlined;
+      case 'security_alert':
+      case 'user_login':
+      case 'user_logout':
+        return Icons.shield_outlined;
       default:
         return Icons.notifications_none;
     }
@@ -114,15 +149,76 @@ class _NotificationScreenState extends State<NotificationScreen> {
         return Colors.blue;
       case 'task_shared':
         return Colors.teal;
+      case 'task_edited':
+        return Colors.orange.shade800;
+      case 'email_sent':
+        return Colors.deepPurple;
+      case 'status_changed':
       case 'task_updated':
-        return Colors.orange;
+        return Colors.indigo;
       case 'task_completed':
         return Colors.green;
       case 'deadline_reminder':
         return Colors.red;
+      case 'security_alert':
+        return Colors.amber.shade900;
       default:
         return Colors.indigo;
     }
+  }
+
+  Widget _buildFilterChips() {
+    final filters = [
+      {'key': 'all', 'label': 'Tất cả (${_notifications.length})', 'icon': Icons.notifications},
+      {'key': 'history', 'label': 'Lịch sử việc', 'icon': Icons.history},
+      {'key': 'assign', 'label': 'Giao việc', 'icon': Icons.person_add_alt_1},
+      {'key': 'share', 'label': 'Chia sẻ', 'icon': Icons.share},
+      {'key': 'edit', 'label': 'Chỉnh sửa', 'icon': Icons.edit_note},
+      {'key': 'email', 'label': 'Gửi mail', 'icon': Icons.mark_email_read},
+    ];
+
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: filters.map((f) {
+            final isSelected = _selectedFilter == f['key'];
+            return Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: FilterChip(
+                selected: isSelected,
+                avatar: Icon(
+                  f['icon'] as IconData,
+                  size: 15,
+                  color: isSelected ? Colors.white : Colors.indigo,
+                ),
+                label: Text(f['label'] as String),
+                labelStyle: TextStyle(
+                  color: isSelected ? Colors.white : Colors.black87,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  fontSize: 12,
+                ),
+                selectedColor: Colors.indigo,
+                backgroundColor: Colors.grey.shade100,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  side: BorderSide(
+                    color: isSelected ? Colors.indigo : Colors.grey.shade300,
+                  ),
+                ),
+                onSelected: (selected) {
+                  setState(() {
+                    _selectedFilter = f['key'] as String;
+                  });
+                },
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
   }
 
   @override
@@ -131,7 +227,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Thông báo'),
+        title: const Text('Thông báo hệ thống'),
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         actions: [
@@ -148,7 +244,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
           ),
         ],
       ),
-      body: _buildBody(),
+      body: Column(
+        children: [
+          _buildFilterChips(),
+          const Divider(height: 1, thickness: 1),
+          Expanded(child: _buildBody()),
+        ],
+      ),
     );
   }
 
@@ -183,7 +285,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
       );
     }
 
-    if (_notifications.isEmpty) {
+    final items = _filteredNotifications;
+
+    if (items.isEmpty) {
       return RefreshIndicator(
         onRefresh: _loadNotifications,
         child: ListView(
@@ -197,13 +301,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   children: [
                     Icon(Icons.notifications_off_outlined, size: 72, color: Colors.grey.shade400),
                     const SizedBox(height: 16),
-                    const Text(
-                      'Chưa có thông báo nào',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey),
+                    Text(
+                      _selectedFilter == 'all'
+                          ? 'Chưa có thông báo nào'
+                          : 'Chưa có thông báo trong mục này',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey),
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Bạn sẽ nhận được thông báo khi có việc được giao hoặc chia sẻ.',
+                      'Các cập nhật lịch sử, giao việc, chia sẻ, chỉnh sửa và gửi mail sẽ hiển thị tại đây.',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 13, color: Colors.grey),
                     ),
@@ -219,10 +325,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
     return RefreshIndicator(
       onRefresh: _loadNotifications,
       child: ListView.separated(
-        itemCount: _notifications.length,
+        itemCount: items.length,
         separatorBuilder: (context, index) => const Divider(height: 1),
         itemBuilder: (context, index) {
-          final notif = _notifications[index];
+          final notif = items[index];
           final iconColor = _getNotificationColor(notif.type);
 
           return ListTile(

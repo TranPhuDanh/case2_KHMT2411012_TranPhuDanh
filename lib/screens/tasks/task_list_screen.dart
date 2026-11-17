@@ -302,7 +302,10 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
             icon: const Icon(Icons.more_vert),
             tooltip: 'Tùy chọn',
             onSelected: (value) async {
-              if (value == 'profile') {
+              if (value == 'notifications') {
+                await Navigator.pushNamed(context, '/notifications');
+                _loadTasks();
+              } else if (value == 'profile') {
                 await Navigator.pushNamed(context, '/profile');
                 _loadTasks();
               } else if (value == 'logout') {
@@ -341,6 +344,16 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                 ),
               ),
               const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'notifications',
+                child: Row(
+                  children: [
+                    Icon(Icons.notifications_active_outlined, size: 20, color: Colors.indigo),
+                    SizedBox(width: 8),
+                    Text('Thông báo hệ thống'),
+                  ],
+                ),
+              ),
               const PopupMenuItem(
                 value: 'profile',
                 child: Row(
