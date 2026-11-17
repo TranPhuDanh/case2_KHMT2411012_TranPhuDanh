@@ -7,8 +7,9 @@ import 'priority_badge.dart';
 class TaskCard extends StatelessWidget {
   final Task task;
   final VoidCallback? onTap;
+  final VoidCallback? onEdit;
 
-  const TaskCard({super.key, required this.task, this.onTap});
+  const TaskCard({super.key, required this.task, this.onTap, this.onEdit});
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +50,17 @@ class TaskCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   PriorityBadge(priority: task.priority),
+                  if (onEdit != null) ...[
+                    const SizedBox(width: 4),
+                    InkWell(
+                      onTap: onEdit,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Padding(
+                        padding: const EdgeInsets.all(4),
+                        child: Icon(Icons.edit_note, size: 24, color: Colors.indigo.shade600),
+                      ),
+                    ),
+                  ],
                 ],
               ),
               if (task.description != null && task.description!.isNotEmpty) ...[

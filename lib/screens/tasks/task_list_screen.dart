@@ -508,6 +508,14 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                         onTap: () async {
                           await Navigator.pushNamed(context, '/task-detail', arguments: task.id);
                           _loadTasks();
+                          _loadUnreadCount();
+                        },
+                        onEdit: () async {
+                          final updated = await Navigator.pushNamed(context, '/task-edit', arguments: task);
+                          if (updated == true) {
+                            _loadTasks();
+                            _loadUnreadCount();
+                          }
                         },
                       );
                     },
