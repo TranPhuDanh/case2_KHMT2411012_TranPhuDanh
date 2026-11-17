@@ -38,8 +38,8 @@ class Task {
   });
 
   bool get isOwner => permission == 'owner';
-  bool get isViewer => permission == 'viewer';
-  bool get canEdit => permission == null || permission == 'owner' || permission == 'editor' || permission == 'assignee';
+  bool get isViewer => permission != 'owner';
+  bool get canEdit => permission == 'owner';
 
   factory Task.fromJson(Map<String, dynamic> json) {
     List<String> parseAssigneeIds(dynamic raw) {

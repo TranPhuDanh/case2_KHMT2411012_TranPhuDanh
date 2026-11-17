@@ -76,26 +76,51 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
     }
   }
 
-  bool get _isOwner => _task?.isOwner == true || _task?.createdBy == _currentUserId;
-  bool get _canEdit => _isOwner || _task?.canEdit == true;
-  bool get _canAssign => _isOwner || _task?.permission == 'editor';
-  bool get _isViewer => _task?.isViewer == true && !_isOwner;
+  bool get _isOwner => _task?.isOwner == true || (_task != null && _currentUserId != null && _task!.createdBy == _currentUserId);
+  bool get _canEdit => _isOwner;
+  bool get _canAssign => _isOwner;
+  bool get _isViewer => !_isOwner;
 
   Future<void> _updateStatus(String newStatus) async {
-    if (!_canEdit) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bạn chỉ có quyền xem, không thể sửa trạng thái!')),
-      );
-      return;
-    }
     setState(() => _isUpdating = true);
     try {
       final updated = await _taskService.updateStatus(_taskId, newStatus);
-      if (mounted) setState(() => _task = updated);
+      if (mounted) {
+        setState(() => _task = updated);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(newStatus == 'in_progress' ? 'Đã xác nhận nhận công việc thành công!' : 'Đã cập nhật trạng thái công việc!'),
+            backgroundColor: Colors.teal,
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: ${e.toString()}')),
+          SnackBar(content: Text('Lỗi: ${e.toString()}'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUpdating = false);
+    }
+  }
+
+  Future<void> _sendEmailNotification() async {
+    setState(() => _isUpdating = true);
+    try {
+      await _taskService.sendNotificationEmail(_taskId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã gửi email thông báo công việc thành công! (Kiểm tra cả chuông thông báo)'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi gửi email: ${e.toString()}'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -164,6 +189,12 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
         backgroundColor: Colors.indigo,
         foregroundColor: Colors.white,
         actions: [
+          if (_task != null)
+            IconButton(
+              icon: const Icon(Icons.mark_email_read_outlined),
+              tooltip: 'Gửi mail thông báo',
+              onPressed: _isUpdating ? null : _sendEmailNotification,
+            ),
           if (_task != null && _isOwner)
             PopupMenuButton<String>(
               onSelected: (v) async {
@@ -176,6 +207,8 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                 } else if (v == 'share') {
                   await Navigator.pushNamed(context, '/task-sharing', arguments: _task);
                   _loadTask();
+                } else if (v == 'email') {
+                  _sendEmailNotification();
                 } else if (v == 'delete') {
                   _deleteTask();
                 }
@@ -184,6 +217,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                 const PopupMenuItem(value: 'edit', child: ListTile(leading: Icon(Icons.edit), title: Text('Chỉnh sửa'))),
                 const PopupMenuItem(value: 'assign', child: ListTile(leading: Icon(Icons.person_add), title: Text('Giao việc'))),
                 const PopupMenuItem(value: 'share', child: ListTile(leading: Icon(Icons.share), title: Text('Chia sẻ'))),
+                const PopupMenuItem(value: 'email', child: ListTile(leading: Icon(Icons.email_outlined, color: Colors.indigo), title: Text('Gửi mail thông báo'))),
                 const PopupMenuItem(value: 'delete', child: ListTile(leading: Icon(Icons.delete, color: Colors.red), title: Text('Xóa', style: TextStyle(color: Colors.red)))),
               ],
             ),
@@ -281,7 +315,129 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                 PriorityBadge(priority: task.priority),
               ],
             ),
-            const Divider(height: 28),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.indigo.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.indigo.shade100),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.notifications_active, size: 16, color: Colors.indigo),
+                      SizedBox(width: 6),
+                      Text(
+                        'Thao tác công việc (Tự động báo lên chuông thông báo):',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.indigo),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ActionChip(
+                        avatar: const Icon(Icons.history, size: 16, color: Colors.indigo),
+                        label: const Text('Lịch sử việc', style: TextStyle(fontSize: 12)),
+                        onPressed: () => _tabController.animateTo(1),
+                      ),
+                      if (_canAssign)
+                        ActionChip(
+                          avatar: const Icon(Icons.person_add_alt_1, size: 16, color: Colors.blue),
+                          label: const Text('Giao việc', style: TextStyle(fontSize: 12)),
+                          onPressed: () async {
+                            await Navigator.pushNamed(context, '/assign-task', arguments: _task);
+                            _loadTask();
+                          },
+                        ),
+                      if (_isOwner)
+                        ActionChip(
+                          avatar: const Icon(Icons.share, size: 16, color: Colors.teal),
+                          label: const Text('Chia sẻ', style: TextStyle(fontSize: 12)),
+                          onPressed: () async {
+                            await Navigator.pushNamed(context, '/task-sharing', arguments: _task);
+                            _loadTask();
+                          },
+                        ),
+                      if (_canEdit)
+                        ActionChip(
+                          avatar: const Icon(Icons.edit_note, size: 16, color: Colors.orange),
+                          label: const Text('Chỉnh sửa', style: TextStyle(fontSize: 12)),
+                          onPressed: () async {
+                            await Navigator.pushNamed(context, '/task-edit', arguments: _task);
+                            _loadTask();
+                          },
+                        ),
+                      ActionChip(
+                        avatar: const Icon(Icons.mark_email_read, size: 16, color: Colors.deepPurple),
+                        label: const Text('Gửi mail', style: TextStyle(fontSize: 12)),
+                        onPressed: _isUpdating ? null : _sendEmailNotification,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            if (!_isOwner) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.amber.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.lock_outline, color: Colors.amber.shade900, size: 20),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Bạn được giao/chia sẻ công việc này từ Người tạo (Người A). Bạn chỉ có quyền Xem và Nhận việc (không được chỉnh sửa).',
+                        style: TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (task.status == 'todo')
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.check_circle, color: Colors.white),
+                    label: const Text('Xác nhận đã xem & nhận việc', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: _isUpdating ? null : () => _updateStatus('in_progress'),
+                  ),
+                )
+              else if (task.status == 'in_progress')
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.task_alt, color: Colors.white),
+                    label: const Text('Đánh dấu đã hoàn thành', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: _isUpdating ? null : () => _updateStatus('completed'),
+                  ),
+                ),
+            ],
+            const Divider(height: 24),
             if (task.description != null && task.description!.isNotEmpty) ...[
               _buildInfoRow(
                 Icons.description_outlined,

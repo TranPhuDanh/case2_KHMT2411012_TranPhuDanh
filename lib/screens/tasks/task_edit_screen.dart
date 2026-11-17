@@ -32,19 +32,60 @@ class _TaskEditScreenState extends State<TaskEditScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _init());
   }
 
-  void _init() {
-    final task = ModalRoute.of(context)?.settings.arguments as Task?;
-    if (task != null && !_initialized) {
+  void _init() async {
+    if (_initialized) return;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Task) {
       setState(() {
-        _task = task;
-        _titleController.text = task.title;
-        _descriptionController.text = task.description ?? '';
-        _priority = task.priority;
-        _status = task.status;
-        _startDate = task.startDate;
-        _dueDate = task.dueDate;
+        _task = args;
+        _titleController.text = args.title;
+        _descriptionController.text = args.description ?? '';
+        _priority = args.priority;
+        _status = args.status;
+        _startDate = args.startDate;
+        _dueDate = args.dueDate;
         _initialized = true;
       });
+    } else if (args is String && args.isNotEmpty) {
+      setState(() => _isLoading = true);
+      try {
+        final task = await _taskService.getTaskById(args);
+        if (mounted) {
+          setState(() {
+            _task = task;
+            _titleController.text = task.title;
+            _descriptionController.text = task.description ?? '';
+            _priority = task.priority;
+            _status = task.status;
+            _startDate = task.startDate;
+            _dueDate = task.dueDate;
+            _initialized = true;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi tải công việc: $e'), backgroundColor: Colors.red),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } else {
+      setState(() => _initialized = true);
+    }
+
+    if (_task != null && !_task!.isOwner) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Chỉ người tạo việc (Người A) mới có quyền chỉnh sửa. Bạn chỉ có quyền Xem và Nhận việc!'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        Navigator.pop(context);
+      }
+      return;
     }
   }
 

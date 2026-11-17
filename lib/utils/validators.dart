@@ -11,10 +11,10 @@ class Validators {
   }
 
   static String? validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'Mật khẩu không được để trống';
     }
-    if (value.length < 6) {
+    if (value.trim().length < 6) {
       return 'Mật khẩu phải có ít nhất 6 ký tự';
     }
     return null;
@@ -28,10 +28,10 @@ class Validators {
   }
 
   static String? validateConfirmPassword(String? value, String password) {
-    if (value == null || value.isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'Xác nhận mật khẩu không được để trống';
     }
-    if (value != password) {
+    if (value.trim() != password.trim()) {
       return 'Mật khẩu xác nhận không khớp';
     }
     return null;

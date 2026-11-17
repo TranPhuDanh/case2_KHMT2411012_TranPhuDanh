@@ -74,6 +74,24 @@ const addAssignees = async (req, res, next) => {
       title: 'New task assignment',
       message: `You have been assigned to "${task.title}" by ${req.user.fullName}.`,
     }));
+
+    // Thêm thông báo cho người giao việc
+    notifs.push({
+      userId: req.user._id,
+      taskId: task._id,
+      type: 'task_assigned',
+      title: 'Giao việc thành công',
+      message: `Bạn đã giao công việc "${task.title}" cho thành viên mới.`,
+    });
+    // Thêm thông báo gửi email thành công
+    notifs.push({
+      userId: req.user._id,
+      taskId: task._id,
+      type: 'email_sent',
+      title: 'Đã gửi email giao việc',
+      message: `Email thông báo giao việc "${task.title}" đã được gửi đi thành công.`,
+    });
+
     if (notifs.length) await createBulkNotifications(notifs);
 
     return res.json({ success: true, message: 'Assignees updated.', task: updatedTask, data: { task: updatedTask } });

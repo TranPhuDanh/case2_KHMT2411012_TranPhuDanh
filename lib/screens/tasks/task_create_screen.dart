@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/task_service.dart';
+import '../../services/auth_service.dart';
 import '../../utils/validators.dart';
 import '../../utils/constants.dart';
 
@@ -29,18 +30,21 @@ class _TaskCreateScreenState extends State<TaskCreateScreen> {
     super.dispose();
   }
 
-  Future<void> _pickDate(bool isStart) async {
+  Future<void> _selectDate(BuildContext context, bool isStart) async {
     final now = DateTime.now();
     final picked = await showDatePicker(
       context: context,
-      initialDate: isStart ? (_startDate ?? now) : (_dueDate ?? now),
-      firstDate: DateTime(now.year - 1),
-      lastDate: DateTime(now.year + 5),
+      initialDate: isStart ? (_startDate ?? now) : (_dueDate ?? now.add(const Duration(days: 1))),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
     );
     if (picked != null) {
       setState(() {
         if (isStart) {
           _startDate = picked;
+          if (_dueDate != null && _dueDate!.isBefore(_startDate!)) {
+            _dueDate = _startDate;
+          }
         } else {
           _dueDate = picked;
         }
@@ -63,15 +67,31 @@ class _TaskCreateScreenState extends State<TaskCreateScreen> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tạo công việc thành công!')),
+          const SnackBar(content: Text('Tạo công việc thành công!'), backgroundColor: Colors.green),
         );
         Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: ${e.toString()}')),
-        );
+        final errStr = e.toString();
+        if (errStr.contains('401') || errStr.toLowerCase().contains('token')) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Phiên đăng nhập đã hết hạn. Đang chuyển về đăng nhập...'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          Future.delayed(const Duration(seconds: 1), () async {
+            await AuthService().logout();
+            if (mounted) {
+              Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+            }
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi: $errStr'), backgroundColor: Colors.red),
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -97,25 +117,24 @@ class _TaskCreateScreenState extends State<TaskCreateScreen> {
                 controller: _titleController,
                 decoration: const InputDecoration(
                   labelText: 'Tiêu đề *',
-                  border: OutlineInputBorder(),
+                  hintText: 'Nhập tiêu đề công việc',
                   prefixIcon: Icon(Icons.title),
                 ),
-                validator: (v) => Validators.validateRequired(v, 'Tiêu đề'),
-                maxLength: 200,
+                validator: (val) => Validators.validateRequired(val, 'Tiêu đề'),
+                maxLength: 100,
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _descriptionController,
                 decoration: const InputDecoration(
                   labelText: 'Mô tả',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.description_outlined),
-                  alignLabelWithHint: true,
+                  hintText: 'Nhập mô tả chi tiết công việc',
+                  prefixIcon: Icon(Icons.description),
                 ),
                 maxLines: 4,
-                maxLength: 2000,
+                maxLength: 500,
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
@@ -123,15 +142,14 @@ class _TaskCreateScreenState extends State<TaskCreateScreen> {
                       initialValue: _priority,
                       decoration: const InputDecoration(
                         labelText: 'Ưu tiên',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        prefixIcon: Icon(Icons.flag),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'low', child: Text('Thấp')),
-                        DropdownMenuItem(value: 'medium', child: Text('Trung bình')),
-                        DropdownMenuItem(value: 'high', child: Text('Cao')),
+                        DropdownMenuItem(value: AppConstants.priorityLow, child: Text('Thấp')),
+                        DropdownMenuItem(value: AppConstants.priorityMedium, child: Text('Trung bình')),
+                        DropdownMenuItem(value: AppConstants.priorityHigh, child: Text('Cao')),
                       ],
-                      onChanged: (v) => setState(() => _priority = v!),
+                      onChanged: (val) => setState(() => _priority = val!),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -140,28 +158,47 @@ class _TaskCreateScreenState extends State<TaskCreateScreen> {
                       initialValue: _status,
                       decoration: const InputDecoration(
                         labelText: 'Trạng thái',
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                        prefixIcon: Icon(Icons.timelapse),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'todo', child: Text('Chưa làm')),
-                        DropdownMenuItem(value: 'in_progress', child: Text('Đang làm')),
-                        DropdownMenuItem(value: 'completed', child: Text('Hoàn thành')),
+                        DropdownMenuItem(value: AppConstants.statusTodo, child: Text('Chưa làm')),
+                        DropdownMenuItem(value: AppConstants.statusInProgress, child: Text('Đang làm')),
+                        DropdownMenuItem(value: AppConstants.statusCompleted, child: Text('Hoàn thành')),
                       ],
-                      onChanged: (v) => setState(() => _status = v!),
+                      onChanged: (val) => setState(() => _status = val!),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _datePicker('Ngày bắt đầu', _startDate, () => _pickDate(true))),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _selectDate(context, true),
+                      icon: const Icon(Icons.calendar_today, size: 18),
+                      label: Text(
+                        _startDate != null
+                            ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
+                            : 'Ngày bắt đầu',
+                      ),
+                    ),
+                  ),
                   const SizedBox(width: 12),
-                  Expanded(child: _datePicker('Hạn hoàn thành', _dueDate, () => _pickDate(false))),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _selectDate(context, false),
+                      icon: const Icon(Icons.event, size: 18),
+                      label: Text(
+                        _dueDate != null
+                            ? '${_dueDate!.day}/${_dueDate!.month}/${_dueDate!.year}'
+                            : 'Hạn hoàn thành',
+                      ),
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -170,56 +207,20 @@ class _TaskCreateScreenState extends State<TaskCreateScreen> {
                     backgroundColor: Colors.indigo,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
                   icon: _isLoading
-                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.add),
-                  label: const Text('Tạo công việc', style: TextStyle(fontSize: 16)),
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.add_task),
+                  label: Text(_isLoading ? 'Đang tạo...' : 'Tạo công việc', style: const TextStyle(fontSize: 16)),
                 ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _datePicker(String label, DateTime? date, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                date != null ? '${date.day}/${date.month}/${date.year}' : label,
-                style: TextStyle(
-                  color: date != null ? Colors.black87 : Colors.grey,
-                  fontSize: 14,
-                ),
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            if (date != null)
-              GestureDetector(
-                onTap: () => setState(() {
-                  if (label.contains('bắt đầu')) {
-                    _startDate = null;
-                  } else {
-                    _dueDate = null;
-                  }
-                }),
-                child: const Icon(Icons.close, size: 16, color: Colors.grey),
-              ),
-          ],
         ),
       ),
     );

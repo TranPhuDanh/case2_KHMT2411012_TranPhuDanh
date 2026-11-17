@@ -43,7 +43,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await _authService.register(
         _fullNameController.text.trim(),
         _emailController.text.trim(),
-        _passwordController.text,
+        _passwordController.text.trim(),
       );
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/tasks');
@@ -112,7 +112,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       controller: _fullNameController,
                       decoration: const InputDecoration(
                         labelText: 'Họ và tên',
-                        prefixIcon: Icon(Icons.person_outlined),
+                        prefixIcon: Icon(Icons.person_outline),
                         border: OutlineInputBorder(),
                       ),
                       validator: (v) => Validators.validateRequired(v, 'Họ và tên'),
