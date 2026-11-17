@@ -510,13 +510,15 @@ class _TaskListScreenState extends State<TaskListScreen> with SingleTickerProvid
                           _loadTasks();
                           _loadUnreadCount();
                         },
-                        onEdit: () async {
-                          final updated = await Navigator.pushNamed(context, '/task-edit', arguments: task);
-                          if (updated == true) {
-                            _loadTasks();
-                            _loadUnreadCount();
-                          }
-                        },
+                        onEdit: task.isOwner
+                            ? () async {
+                                final updated = await Navigator.pushNamed(context, '/task-edit', arguments: task);
+                                if (updated == true) {
+                                  _loadTasks();
+                                  _loadUnreadCount();
+                                }
+                              }
+                            : null,
                       );
                     },
                   ),

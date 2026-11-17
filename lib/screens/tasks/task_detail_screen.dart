@@ -76,26 +76,28 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
     }
   }
 
-  bool get _isOwner => _task?.isOwner == true || _task?.createdBy == _currentUserId;
-  bool get _canEdit => _isOwner || _task?.canEdit == true;
-  bool get _canAssign => _isOwner || _task?.permission == 'editor';
-  bool get _isViewer => _task?.isViewer == true && !_isOwner;
+  bool get _isOwner => _task?.isOwner == true || (_task != null && _currentUserId != null && _task!.createdBy == _currentUserId);
+  bool get _canEdit => _isOwner;
+  bool get _canAssign => _isOwner;
+  bool get _isViewer => !_isOwner;
 
   Future<void> _updateStatus(String newStatus) async {
-    if (!_canEdit) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Bạn chỉ có quyền xem, không thể sửa trạng thái!')),
-      );
-      return;
-    }
     setState(() => _isUpdating = true);
     try {
       final updated = await _taskService.updateStatus(_taskId, newStatus);
-      if (mounted) setState(() => _task = updated);
+      if (mounted) {
+        setState(() => _task = updated);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(newStatus == 'in_progress' ? 'Đã xác nhận nhận công việc thành công!' : 'Đã cập nhật trạng thái công việc!'),
+            backgroundColor: Colors.teal,
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: ${e.toString()}')),
+          SnackBar(content: Text('Lỗi: ${e.toString()}'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -381,6 +383,60 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> with SingleTickerPr
                 ],
               ),
             ),
+            if (!_isOwner) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.amber.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.amber.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.lock_outline, color: Colors.amber.shade900, size: 20),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Bạn được giao/chia sẻ công việc này từ Người tạo (Người A). Bạn chỉ có quyền Xem và Nhận việc (không được chỉnh sửa).',
+                        style: TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (task.status == 'todo')
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.check_circle, color: Colors.white),
+                    label: const Text('Xác nhận đã xem & nhận việc', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: _isUpdating ? null : () => _updateStatus('in_progress'),
+                  ),
+                )
+              else if (task.status == 'in_progress')
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.task_alt, color: Colors.white),
+                    label: const Text('Đánh dấu đã hoàn thành', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: _isUpdating ? null : () => _updateStatus('completed'),
+                  ),
+                ),
+            ],
             const Divider(height: 24),
             if (task.description != null && task.description!.isNotEmpty) ...[
               _buildInfoRow(

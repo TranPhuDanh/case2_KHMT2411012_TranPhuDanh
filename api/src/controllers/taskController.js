@@ -65,11 +65,22 @@ const getTasks = async (req, res, next) => {
       Task.countDocuments(query),
     ]);
 
+    const tasksWithPermission = tasks.map((t) => {
+      const obj = t.toObject ? t.toObject() : t;
+      const creatorId = t.createdBy?._id ? t.createdBy._id.toString() : t.createdBy?.toString();
+      if (creatorId === userId) {
+        obj.permission = 'owner';
+      } else {
+        obj.permission = 'viewer'; // Người B chỉ có quyền xem và nhận việc
+      }
+      return obj;
+    });
+
     return res.json({
       success: true,
-      tasks,
+      tasks: tasksWithPermission,
       data: {
-        tasks,
+        tasks: tasksWithPermission,
         pagination: {
           total,
           page: parseInt(page),
@@ -165,11 +176,17 @@ const getTaskById = async (req, res, next) => {
       .populate('assigneeIds', 'fullName email avatarUrl')
       .populate('primaryAssigneeId', 'fullName email avatarUrl');
 
+    const taskObj = task.toObject();
+    const isOwner = task.createdBy?._id
+      ? task.createdBy._id.toString() === req.user._id.toString()
+      : task.createdBy?.toString() === req.user._id.toString();
+    taskObj.permission = isOwner ? 'owner' : 'viewer';
+
     return res.json({
       success: true,
-      task,
-      permission: req.taskPermission,
-      data: { task, permission: req.taskPermission },
+      task: taskObj,
+      permission: taskObj.permission,
+      data: { task: taskObj, permission: taskObj.permission },
     });
   } catch (error) {
     next(error);

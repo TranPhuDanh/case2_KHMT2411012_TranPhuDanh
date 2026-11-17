@@ -58,7 +58,10 @@ const requireOwner = (req, res, next) => {
   if (req.taskPermission === 'owner') {
     return next();
   }
-  return res.status(403).json({ success: false, message: 'Access denied. Only the task owner can perform this action.' });
+  return res.status(403).json({
+    success: false,
+    message: 'Chỉ người tạo công việc mới có quyền chỉnh sửa hoặc xóa. Bạn chỉ có quyền xem và nhận việc.',
+  });
 };
 
 module.exports = { loadTaskWithPermission, requireEditorOrOwner, requireOwner };

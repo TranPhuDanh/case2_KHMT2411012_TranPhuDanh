@@ -20,7 +20,7 @@ router.get('/', authenticate, getTasks);
 router.post('/', authenticate, createTaskValidator, validate, createTask);
 
 router.get('/:id', authenticate, loadTaskWithPermission, getTaskById);
-router.put('/:id', authenticate, loadTaskWithPermission, requireEditorOrOwner, updateTaskValidator, validate, updateTask);
+router.put('/:id', authenticate, loadTaskWithPermission, requireOwner, updateTaskValidator, validate, updateTask);
 router.delete('/:id', authenticate, loadTaskWithPermission, requireOwner, deleteTask);
 router.patch('/:id/status', authenticate, loadTaskWithPermission, requireEditorOrOwner, updateStatusValidator, validate, updateStatus);
 router.get('/:id/activities', authenticate, loadTaskWithPermission, getActivities);

@@ -74,6 +74,19 @@ class _TaskEditScreenState extends State<TaskEditScreen> {
     } else {
       setState(() => _initialized = true);
     }
+
+    if (_task != null && !_task!.isOwner) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Chỉ người tạo việc (Người A) mới có quyền chỉnh sửa. Bạn chỉ có quyền Xem và Nhận việc!'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        Navigator.pop(context);
+      }
+      return;
+    }
   }
 
   @override
