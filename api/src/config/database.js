@@ -27,7 +27,7 @@ const connectDB = async () => {
         const passwordHash = await bcrypt.hash('Danh_123', 10);
         const users = await User.create([
           { fullName: 'TPDanh', email: 'tpdanhkhmt2411012@student.ctuet.edu.vn', passwordHash, lastLoginAt: new Date() },
-          { fullName: 'Trần Phú Danh', email: 'danh@example.com', passwordHash, lastLoginAt: new Date() },
+          { fullName: 'Trần Phú Danh', email: 'tranphudanh632006@gmail.com', passwordHash, lastLoginAt: new Date() },
           { fullName: 'Nguyễn Thị Lan', email: 'lan@example.com', passwordHash },
           { fullName: 'Lê Văn Tuấn', email: 'tuan@example.com', passwordHash },
         ]);
